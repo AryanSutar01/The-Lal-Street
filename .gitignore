@@ -1,0 +1,79 @@
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnp/
+.pnp.js
+.cache/
+.parcel-cache/
+dist/
+build/
+out/
+.next/
+.nuxt/
+public/build/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Logs and temp
+logs/
+*.log
+*.log.*
+tmp/
+temp/
+.cache/
+coverage/
+
+# Environment files
+.env
+.env.*.local
+.local
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS specific thumbnails, metadata
+Icon?
+Thumbs.db
+.DS_Store
+
+# Build outputs & packages
+dist/
+build/
+coverage/
+*.tgz
+*.zip
+
+# Misc
+*.sqlite3
+*.bak
+*.tmp
+*.orig
+
+# Docker
+docker-compose.override.yml

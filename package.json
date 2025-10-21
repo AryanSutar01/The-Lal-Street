@@ -1,0 +1,26 @@
+{
+  "name": "the-lal-street",
+  "version": "1.0.0",
+  "description": "\"# The-Lal-Street-Website\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AryanSutar01/The-Lal-Street-Website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AryanSutar01/The-Lal-Street-Website/issues"
+  },
+  "homepage": "https://github.com/AryanSutar01/The-Lal-Street-Website#readme",
+
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}
