@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend as RechartsLegend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
@@ -599,20 +599,10 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                     }}
                     contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc', borderRadius: '8px' }}
                   />
-                  <Legend 
+                  {/* @ts-ignore */}
+                  <RechartsLegend 
                   wrapperStyle={{ paddingTop: '20px' }}
                   iconType="line"
-                />
-                  
-                  {/* Total Investment Line (Dotted Gray) */}
-                  <Line 
-                    type="monotone" 
-                  dataKey="invested" 
-                  stroke="#9ca3af" 
-                    strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Total Investment"
-                  dot={false}
                 />
                   
                   {/* Bucket Performance Line (Bold Black) */}

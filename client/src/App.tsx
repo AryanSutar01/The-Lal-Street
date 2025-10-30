@@ -6,6 +6,7 @@ import { SIPCalculator } from './components/calculators/SIPCalculator';
 import { RollingCalculator } from './components/calculators/RollingCalculator';
 import { LumpsumCalculator } from './components/calculators/LumpsumCalculator';
 import { SWPCalculator } from './components/calculators/SWPCalculator';
+import { SIPLumpsumCalculator } from './components/calculators/SIPLumpsumCalculator';
 import { TrendingUp, PieChart, Calculator, BarChart3 } from 'lucide-react';
 
 export interface Fund {
@@ -19,7 +20,25 @@ export interface SelectedFund extends Fund {
   weightage: number;
 }
 
-export type CalculatorType = 'SIP' | 'Rolling' | 'Lumpsum' | 'SWP' | null;
+export type CalculatorType = 'SIP' | 'SIPLumpsum' | 'Rolling' | 'Lumpsum' | 'SWP' | null;
+
+// Utility function to distribute 100% weightage as whole numbers
+const distributeWeightage = (count: number): number[] => {
+  if (count === 0) return [];
+  
+  const baseWeight = Math.floor(100 / count);
+  const remainder = 100 - (baseWeight * count);
+  
+  // Create array with base weights
+  const weights = new Array(count).fill(baseWeight);
+  
+  // Distribute remainder by adding 1 to the first 'remainder' funds
+  for (let i = 0; i < remainder; i++) {
+    weights[i] += 1;
+  }
+  
+  return weights;
+};
 
 export default function App() {
   const [selectedFunds, setSelectedFunds] = useState<SelectedFund[]>([]);
@@ -31,25 +50,33 @@ export default function App() {
       return;
     }
     
-    // Calculate equal weightage
-    const newWeightage = 100 / (selectedFunds.length + 1);
-    const updatedFunds = selectedFunds.map(f => ({
+    // Check fund limit (max 5 funds)
+    if (selectedFunds.length >= 5) {
+      alert('Maximum 5 funds allowed in the bucket. Please remove a fund before adding a new one.');
+      return;
+    }
+    
+    // Calculate equal weightage using whole numbers
+    const newCount = selectedFunds.length + 1;
+    const weights = distributeWeightage(newCount);
+    
+    const updatedFunds = selectedFunds.map((f, index) => ({
       ...f,
-      weightage: newWeightage
+      weightage: weights[index]
     }));
     
-    setSelectedFunds([...updatedFunds, { ...fund, weightage: newWeightage }]);
+    setSelectedFunds([...updatedFunds, { ...fund, weightage: weights[newCount - 1] }]);
   };
 
   const handleRemoveFund = (fundId: string) => {
     const filtered = selectedFunds.filter(f => f.id !== fundId);
     
-    // Redistribute weightage equally
+    // Redistribute weightage equally using whole numbers
     if (filtered.length > 0) {
-      const newWeightage = 100 / filtered.length;
-      const redistributed = filtered.map(f => ({
+      const weights = distributeWeightage(filtered.length);
+      const redistributed = filtered.map((f, index) => ({
         ...f,
-        weightage: newWeightage
+        weightage: weights[index]
       }));
       setSelectedFunds(redistributed);
     } else {
@@ -67,6 +94,8 @@ export default function App() {
     switch (activeCalculator) {
       case 'SIP':
         return <SIPCalculator funds={selectedFunds} />;
+      case 'SIPLumpsum':
+        return <SIPLumpsumCalculator funds={selectedFunds} />;
       case 'Rolling':
         return <RollingCalculator funds={selectedFunds} />;
       case 'Lumpsum':

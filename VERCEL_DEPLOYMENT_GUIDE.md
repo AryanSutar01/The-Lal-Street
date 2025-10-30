@@ -53,7 +53,7 @@ git push origin main
 - **Framework Preset:** Other
 - **Root Directory:** `./`
 - **Build Command:** `npm run vercel-build`
-- **Output Directory:** `client_2/dist`
+- **Output Directory:** `client/dist`
 - **Install Command:** `npm install`
 
 **Environment Variables:** (if needed)
@@ -78,10 +78,10 @@ git push origin main
       "use": "@vercel/node"
     },
     {
-      "src": "client_2/package.json",
+      "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "client_2/dist"
+        "distDir": "client/dist"
       }
     }
   ],
@@ -99,8 +99,8 @@ This tells Vercel:
 ```json
 {
   "scripts": {
-    "build": "npm run build --workspace=client_2",
-    "vercel-build": "npm run build --workspace=client_2"
+    "build": "npm run build --workspace=client",
+    "vercel-build": "npm run build --workspace=client"
   }
 }
 ```
@@ -115,7 +115,7 @@ This tells Vercel:
 }
 ```
 
-### 4. API Configuration (`client_2/src/config/api.ts`)
+### 4. API Configuration (`client/src/config/api.ts`)
 ```typescript
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.MODE === 'production' 
@@ -213,7 +213,7 @@ Your app already has:
 ### 3. Optimize Bundle Size
 ```bash
 # Analyze bundle
-cd client_2
+cd client
 npm run build -- --mode production
 
 # Check dist folder size

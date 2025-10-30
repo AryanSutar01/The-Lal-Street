@@ -1,6 +1,8 @@
 // server/services/fundList.service.js
 const axios = require('axios');
+const { LRUCache } = require('lru-cache');
 const { getHistoricalNav } = require('./navApi.service');
+const logger = require('../utils/logger');
 const API_BASE_URL = 'https://api.mfapi.in/mf';
 
 // --- Our In-Memory Cache ---
@@ -8,9 +10,15 @@ let cachedFundList = [];
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Cache for fund metadata (launch date, category)
-const fundMetadataCache = new Map();
-const METADATA_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Cache for fund metadata (launch date, category) with LRU
+const fundMetadataCache = new LRUCache({
+  max: 200,  // Maximum 200 fund metadata entries
+  ttl: 7 * 24 * 60 * 60 * 1000,  // 7 days
+  updateAgeOnGet: true,  // Refresh TTL on access
+  dispose: (value, key) => {
+    logger.debug(`Metadata cache evicted: ${key}`);
+  }
+});
 
 /**
  * Fetches and caches the master list of all funds.
@@ -18,8 +26,8 @@ const METADATA_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
  */
 const refreshFundCache = async () => {
   try {
-    console.log('[FundList Service] Refreshing fund list cache...');
-    const response = await axios.get(API_BASE_URL);
+    logger.info('Refreshing fund list cache...');
+    const response = await axios.get(API_BASE_URL, { timeout: 10000 });
     // The data is an array of { schemeCode, schemeName }
     cachedFundList = response.data.map(fund => ({
       schemeCode: fund.schemeCode.toString(), // Ensure string
@@ -27,9 +35,9 @@ const refreshFundCache = async () => {
     }));
     
     cacheTimestamp = Date.now();
-    console.log(`[FundList Service] Cache refreshed. ${cachedFundList.length} funds loaded.`);
+    logger.info(`Fund cache refreshed: ${cachedFundList.length} funds loaded`);
   } catch (error) {
-    console.error('[FundList Service] Failed to refresh fund cache:', error.message);
+    logger.error('Failed to refresh fund cache:', error.message);
   }
 };
 
@@ -39,10 +47,10 @@ const refreshFundCache = async () => {
  * @returns {Promise<object>} Metadata object with launchDate and category
  */
 const getFundMetadata = async (schemeCode) => {
-  // Check cache first
+  // Check LRU cache (handles TTL automatically)
   const cached = fundMetadataCache.get(schemeCode);
-  if (cached && (Date.now() - cached.timestamp < METADATA_CACHE_TTL)) {
-    return cached.data;
+  if (cached) {
+    return cached;
   }
 
   try {
@@ -56,16 +64,13 @@ const getFundMetadata = async (schemeCode) => {
         category: navData.meta.scheme_category || 'Unknown'
       };
 
-      // Cache it
-      fundMetadataCache.set(schemeCode, {
-        data: metadata,
-        timestamp: Date.now()
-      });
+      // Cache it (LRU handles TTL and eviction)
+      fundMetadataCache.set(schemeCode, metadata);
 
       return metadata;
     }
   } catch (error) {
-    console.error(`[FundList Service] Error fetching metadata for ${schemeCode}:`, error.message);
+    logger.error(`Error fetching metadata for ${schemeCode}:`, error.message);
   }
 
   return { launchDate: null, category: 'Unknown' };

@@ -7,11 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "npm run dev --workspace=server",
     "client": "npm run dev --workspace=client",
-    "client2": "npm run dev --workspace=client_2",
     "dev": "concurrently \"npm:server\" \"npm:client\"",
-    "dev2": "concurrently \"npm:server\" \"npm:client2\"",
-    "build": "npm run build --workspace=client_2",
-    "vercel-build": "npm run build --workspace=client_2"
+    "build": "npm run build --workspace=client",
+    "vercel-build": "npm run build --workspace=client"
   },
   "repository": {
     "type": "git",
@@ -27,7 +25,6 @@
   "homepage": "https://github.com/AryanSutar01/The-Lal-Street-Website#readme",
   "workspaces": [
     "client",
-    "client_2",
     "server"
   ],
   "devDependencies": {

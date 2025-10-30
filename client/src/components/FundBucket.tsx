@@ -14,7 +14,7 @@ interface FundBucketProps {
 
 export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucketProps) {
   const totalWeightage = funds.reduce((sum, fund) => sum + fund.weightage, 0);
-  const isValidAllocation = Math.abs(totalWeightage - 100) < 0.01;
+  const isValidAllocation = totalWeightage === 100;
 
   const formatDate = (dateStr: string) => {
     try {
@@ -30,12 +30,17 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Fund Bucket</h3>
-          <p className="text-sm text-gray-600">Manage your selected funds and weightage allocation</p>
+          <p className="text-sm text-gray-600">
+            Manage your selected funds and weightage allocation 
+            <span className={`ml-2 font-medium ${funds.length >= 5 ? 'text-red-600' : 'text-blue-600'}`}>
+              ({funds.length}/5 funds)
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Total Weightage</span>
           <span className={`text-2xl font-bold ${isValidAllocation ? 'text-green-600' : 'text-red-600'}`}>
-            {totalWeightage.toFixed(1)}%
+            {totalWeightage.toFixed(0)}%
           </span>
         </div>
       </div>
@@ -65,7 +70,10 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
             <TableBody>
               {funds.map((fund) => (
                 <TableRow key={fund.id}>
-                  <TableCell className="font-medium">{fund.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {fund.name}
+                    <div className="text-xs text-gray-400 mt-1">Code: {fund.id}</div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="capitalize">
                       {fund.category || 'Unknown'}
@@ -103,7 +111,7 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
           {!isValidAllocation && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
-                ⚠️ Portfolio allocation must total exactly 100%. Current total: <strong>{totalWeightage.toFixed(1)}%</strong>
+                ⚠️ Portfolio allocation must total exactly 100%. Current total: <strong>{totalWeightage}%</strong>
               </p>
             </div>
           )}

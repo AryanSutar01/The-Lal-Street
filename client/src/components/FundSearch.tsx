@@ -12,11 +12,14 @@ interface FundSearchProps {
   onSelectFund: (fund: Fund) => void;
 }
 
+type FundFilter = 'all' | 'direct-growth' | 'regular-growth';
+
 export function FundSearch({ onSelectFund }: FundSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [filter, setFilter] = useState<FundFilter>('all');
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
@@ -30,7 +33,22 @@ export function FundSearch({ onSelectFund }: FundSearchProps) {
       setIsLoading(true);
       try {
         const data = await searchFunds(debouncedQuery);
-        setResults(data.slice(0, 10)); // Limit to 10 results
+        
+        // Apply filter
+        let filteredData = data;
+        if (filter === 'direct-growth') {
+          filteredData = data.filter(fund => {
+            const name = (fund.schemeName || fund.scheme_name || '').toLowerCase();
+            return name.includes('direct') && name.includes('growth');
+          });
+        } else if (filter === 'regular-growth') {
+          filteredData = data.filter(fund => {
+            const name = (fund.schemeName || fund.scheme_name || '').toLowerCase();
+            return !name.includes('direct') && name.includes('growth');
+          });
+        }
+        
+        setResults(filteredData.slice(0, 10)); // Limit to 10 results
         setShowResults(true);
       } catch (error) {
         console.error('Search error:', error);
@@ -41,7 +59,7 @@ export function FundSearch({ onSelectFund }: FundSearchProps) {
     };
 
     search();
-  }, [debouncedQuery]);
+  }, [debouncedQuery, filter]);
 
   const handleSelectFund = (fund: any) => {
     console.log('[FundSearch] Selected fund:', fund);
@@ -59,18 +77,50 @@ export function FundSearch({ onSelectFund }: FundSearchProps) {
 
   return (
     <div className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input
-          type="text"
-          placeholder="Search mutual funds..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-4 py-2 w-full"
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-        )}
+      <div className="space-y-3">
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            type="text"
+            placeholder="Search mutual funds..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full"
+          />
+          {isLoading && (
+            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+          )}
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600 font-medium">Filter:</span>
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('all')}
+            className="text-xs"
+          >
+            All Funds
+          </Button>
+          <Button
+            variant={filter === 'direct-growth' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('direct-growth')}
+            className="text-xs"
+          >
+            Direct Growth
+          </Button>
+          <Button
+            variant={filter === 'regular-growth' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('regular-growth')}
+            className="text-xs"
+          >
+            Regular Growth
+          </Button>
+        </div>
       </div>
 
       {showResults && results.length > 0 && (

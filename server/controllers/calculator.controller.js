@@ -2,20 +2,18 @@
 const { getHistoricalNav } = require('../services/navApi.service.js');
 const { runPortfolioSipSimulation } = require('../logic/sipSimulator.js');
 const { calculateRollingReturns } = require('../logic/financialCalculations.js');
+const logger = require('../utils/logger');
 
 /**
  * Handles the main Portfolio SIP Simulation request.
  */
 const handleSipCalculation = async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const inputs = req.body;
 
-    // Basic validation
-    if (!inputs.funds || inputs.funds.length === 0) {
-      return res.status(400).json({ message: 'Funds array is required.' });
-    }
-
-    console.log('[Calc.controller] Received simulation request:', inputs);
+    logger.info(`SIP calculation request: ${inputs.funds?.length || 0} funds, ${inputs.startDate} to ${inputs.endDate}`);
 
     // 1. Get all scheme codes from the input
     const schemeCodes = inputs.funds.map(f => f.schemeCode);
@@ -25,19 +23,34 @@ const handleSipCalculation = async (req, res) => {
     const allNavData = await Promise.all(navPromises);
 
     // 3. Check for failures
-    if (allNavData.some(data => data === null)) {
-      return res.status(404).json({ message: 'NAV data not found for one or more schemes.' });
+    const failedFunds = allNavData.filter(data => data === null);
+    if (failedFunds.length === allNavData.length) {
+      logger.warn('All NAV data requests failed');
+      return res.status(503).json({ 
+        message: 'Unable to fetch NAV data. External API may be down. Please try again later.' 
+      });
+    }
+    
+    if (failedFunds.length > 0) {
+      logger.warn(`${failedFunds.length} out of ${allNavData.length} funds failed to fetch`);
     }
     
     // 4. Run the main simulation
-    const result = runPortfolioSipSimulation(inputs, allNavData);
+    const result = runPortfolioSipSimulation(inputs, allNavData.filter(d => d !== null));
     
-    // 5. Send the complete result back
+    const processingTime = Date.now() - startTime;
+    logger.info(`SIP calculation completed in ${processingTime}ms`);
+    
+    // 5. Send the complete result back (raw result for backward compatibility)
     res.json(result);
 
   } catch (error) {
-    console.error('[Calc.controller] Error in SIP calculation:', error.message);
-    res.status(500).json({ message: 'An error occurred during calculation.' });
+    logger.error('Error in SIP calculation:', error.message);
+    logger.error(error.stack);
+    res.status(500).json({ 
+      message: 'An error occurred during calculation. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -45,18 +58,12 @@ const handleSipCalculation = async (req, res) => {
  * Handles rolling returns calculation request.
  */
 const handleRollingReturns = async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const { schemeCodes, windowDays } = req.body;
 
-    if (!schemeCodes || !Array.isArray(schemeCodes) || schemeCodes.length === 0) {
-      return res.status(400).json({ message: 'schemeCodes array is required.' });
-    }
-
-    if (!windowDays || windowDays <= 0) {
-      return res.status(400).json({ message: 'Valid windowDays is required.' });
-    }
-
-    console.log('[Rolling Returns] Processing:', { schemeCodes, windowDays });
+    logger.info(`Rolling returns request: ${schemeCodes.length} schemes, ${windowDays} days window`);
 
     // Fetch NAV data for all schemes
     const navPromises = schemeCodes.map(code => getHistoricalNav(code));
@@ -66,7 +73,10 @@ const handleRollingReturns = async (req, res) => {
     const validNavData = allNavData.filter(data => data !== null);
 
     if (validNavData.length === 0) {
-      return res.status(404).json({ message: 'No valid NAV data found for the requested schemes.' });
+      logger.warn('No valid NAV data found for rolling returns');
+      return res.status(503).json({ 
+        message: 'No valid NAV data found. External API may be down.' 
+      });
     }
 
     // Calculate rolling returns for each scheme
@@ -89,6 +99,10 @@ const handleRollingReturns = async (req, res) => {
       };
     });
 
+    const processingTime = Date.now() - startTime;
+    logger.info(`Rolling returns completed in ${processingTime}ms`);
+
+    // Return result for backward compatibility
     res.json({
       windowDays,
       results,
@@ -100,8 +114,12 @@ const handleRollingReturns = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Rolling Returns] Error:', error.message);
-    res.status(500).json({ message: 'An error occurred during rolling returns calculation.' });
+    logger.error('Error in rolling returns calculation:', error.message);
+    logger.error(error.stack);
+    res.status(500).json({ 
+      message: 'An error occurred during rolling returns calculation.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

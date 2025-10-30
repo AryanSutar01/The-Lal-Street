@@ -22,7 +22,7 @@ interface CacheEntry {
   expiresAt: number;
 }
 
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours (changed from 1 hour)
 const cache = new Map<string, CacheEntry>();
 
 export async function fetchNAVData(
