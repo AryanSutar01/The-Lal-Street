@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install && cd client && npm install && npm run build",
+  "buildCommand": "cd client && npm ci && npm run build",
   "outputDirectory": "client/dist",
   "installCommand": "npm install && cd server && npm install",
   "rewrites": [
@@ -20,5 +20,7 @@
   },
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "framework": null,
+  "cleanUrls": true
 }

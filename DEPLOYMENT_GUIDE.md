@@ -51,24 +51,44 @@ Vercel will:
 
 ## 🔍 Troubleshooting Common Issues
 
-### Issue 1: Build Fails - "Module not found"
+### Issue 1: React useContext Error / Blank Page
+**THIS IS THE MOST COMMON ISSUE!**
+
+**Symptoms:**
+- Page goes blank when clicking on funds
+- Console shows: "Cannot read properties of null (reading 'useContext')"
+
+**Solution:** Clear Vercel Build Cache
+1. Go to Vercel Dashboard
+2. Click on your project
+3. Go to **Settings** → **General**
+4. Scroll down to **Build & Development Settings**
+5. Click **Clear Build Cache**
+6. Go back to **Deployments** tab
+7. Click the 3-dot menu on latest deployment → **Redeploy**
+8. Check **"Use existing Build Cache"** is **UNCHECKED**
+9. Click **Redeploy**
+
+**Why this happens:** Vercel cached the old React versions before the fix.
+
+### Issue 2: Build Fails - "Module not found"
 **Solution:** Make sure `client/package.json` exists with all dependencies
 ```bash
 cd client
 npm install
 ```
 
-### Issue 2: API Routes Return 404
+### Issue 3: API Routes Return 404
 **Solution:** Check `vercel.json` rewrites match your API endpoints
 - `/api/funds/search` → `api/funds/search.js`
 - `/api/funds/get-nav-bucket` → `api/funds/get-nav-bucket.js`
 
-### Issue 3: Function Timeout
+### Issue 4: Function Timeout
 **Solution:** Functions have 30s timeout (configured in vercel.json)
 - If NAV data fetching takes too long, optimize the backend logic
 - Consider pagination for large datasets
 
-### Issue 4: CORS Errors
+### Issue 5: CORS Errors
 **Solution:** CORS headers are already configured in API functions
 - Check browser console for specific errors
 - Verify API function is returning proper headers
