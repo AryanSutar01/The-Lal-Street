@@ -1,7 +1,8 @@
 {
-  "buildCommand": "cd client && npm install && npm run build",
+  "version": 2,
+  "buildCommand": "npm install && cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "cd server && npm install",
+  "installCommand": "npm install && cd server && npm install",
   "rewrites": [
     {
       "source": "/api/funds/search",
@@ -11,5 +12,13 @@
       "source": "/api/funds/get-nav-bucket",
       "destination": "/api/funds/get-nav-bucket.js"
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
