@@ -1,11 +1,15 @@
 {
   "buildCommand": "cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install && cd server && npm install",
+  "installCommand": "cd server && npm install",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "source": "/api/funds/search",
+      "destination": "/api/funds/search.js"
+    },
+    {
+      "source": "/api/funds/get-nav-bucket",
+      "destination": "/api/funds/get-nav-bucket.js"
     }
   ]
 }
