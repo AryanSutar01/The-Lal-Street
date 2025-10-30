@@ -1,0 +1,23 @@
+# Render Configuration for Backend Deployment
+# This file makes it easy to deploy your Express server to Render
+
+services:
+  # Backend API Service
+  - type: web
+    name: lal-street-api
+    runtime: node
+    region: singapore  # or oregon, frankfurt (closest to your users)
+    plan: free  # or starter for $7/month (no cold starts)
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: ALLOWED_ORIGINS
+        value: https://your-app.vercel.app,http://localhost:5173
+        # IMPORTANT: Update this with your actual Vercel frontend URL after deploying
+    healthCheckPath: /api/health
+
