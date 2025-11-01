@@ -71,6 +71,8 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
   const [selectedFundForWithdrawal, setSelectedFundForWithdrawal] = useState<string>('');
   const [initialHoldings, setInitialHoldings] = useState<Record<string, number>>({});
   const [initialInvestmentValues, setInitialInvestmentValues] = useState<Record<string, number>>({});
+  const [inputMethod, setInputMethod] = useState<'value' | 'units'>('value');
+  const [initialPortfolioValue, setInitialPortfolioValue] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SWPCalculationResult | null>(null);
@@ -146,10 +148,16 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         throw new Error('Please select a fund for Fund Mode withdrawal');
       }
 
-      // Check if initial holdings are provided
-      const totalInitialUnits = Object.values(initialHoldings).reduce((sum, units) => sum + (units || 0), 0);
-      if (totalInitialUnits === 0) {
-        throw new Error('Please enter initial holdings (number of units) for at least one fund');
+      // Validate inputs based on method
+      if (inputMethod === 'value') {
+        if (initialPortfolioValue <= 0) {
+          throw new Error('Please enter your current portfolio value');
+        }
+      } else {
+        const totalInitialUnits = Object.values(initialHoldings).reduce((sum, units) => sum + (units || 0), 0);
+        if (totalInitialUnits === 0) {
+          throw new Error('Please enter initial holdings (number of units) for at least one fund');
+        }
       }
 
       // Fetch NAV data for all funds
@@ -170,8 +178,32 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           throw new Error(`No NAV data found for fund: ${fund.name}`);
         }
 
-        const initialUnits = initialHoldings[fund.id] || 0;
-        const initialInvested = initialInvestmentValues[fund.id] || 0;
+        let initialUnits = initialHoldings[fund.id] || 0;
+        let initialInvested = initialInvestmentValues[fund.id] || 0;
+
+        // If using value-based input, calculate units from portfolio value
+        if (inputMethod === 'value' && initialPortfolioValue > 0) {
+          // Get NAV at start date to calculate initial units
+          const startNavEntry = getNextAvailableNAV(navData.navData, startDate);
+          if (!startNavEntry) {
+            throw new Error(`No NAV data available for ${fund.name} at start date`);
+          }
+
+          // Distribute portfolio value by weightage
+          const fundValue = initialPortfolioValue * (fund.weightage / 100);
+          initialUnits = fundValue / startNavEntry.nav;
+          
+          // If initial investment not provided, use calculated value for XIRR
+          if (initialInvested === 0) {
+            initialInvested = fundValue;
+          }
+        } else if (initialUnits > 0 && initialInvested === 0) {
+          // If units provided but no initial investment, estimate from NAV at start date
+          const startNavEntry = getNextAvailableNAV(navData.navData, startDate);
+          if (startNavEntry) {
+            initialInvested = initialUnits * startNavEntry.nav;
+          }
+        }
 
         return {
           fundId: fund.id,
@@ -190,18 +222,11 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       // Calculate initial total investment value (for XIRR base)
       const initialTotalInvestment = Object.values(initialInvestmentValues).reduce((sum, val) => sum + (val || 0), 0);
       
-      // If initial investment values are not provided, estimate from initial NAV
+      // If initial investment values are not provided, use calculated values
       let estimatedInitialInvestment = initialTotalInvestment;
       if (estimatedInitialInvestment === 0) {
-        // Try to estimate from initial NAV on start date
-        let totalEstimated = 0;
-        fundStates.forEach(state => {
-          const startNav = getNextAvailableNAV(state.navData, startDate);
-          if (startNav && state.initialUnits > 0) {
-            totalEstimated += state.initialUnits * startNav.nav;
-          }
-        });
-        estimatedInitialInvestment = totalEstimated;
+        // Use the sum of all fund initial investments (already calculated)
+        estimatedInitialInvestment = fundStates.reduce((sum, state) => sum + state.initialInvested, 0);
       }
 
       // Track overall cashflows for XIRR (initial investment as negative)
@@ -525,10 +550,10 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
       // Sort chart data by date
       chartDataPoints.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      setResult({
+    
+    setResult({
         totalInvested: estimatedInitialInvestment,
-        totalWithdrawn,
+      totalWithdrawn,
         currentValue: finalBucketValue,
         profit: totalProfit,
         profitPercentage,
@@ -554,37 +579,37 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <Label htmlFor="start-date">Start Date</Label>
-            <Input
+              <Input
               id="start-date"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               max={getToday()}
-            />
-          </div>
+              />
+            </div>
 
           <div>
             <Label htmlFor="end-date">End Date</Label>
-            <Input
+              <Input
               id="end-date"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               max={getToday()}
-            />
-          </div>
+              />
+            </div>
 
           <div>
             <Label htmlFor="withdrawal-amount">Withdrawal Amount (₹)</Label>
-            <Input
+              <Input
               id="withdrawal-amount"
-              type="number"
+                type="number"
               value={withdrawalAmount}
               onChange={(e) => setWithdrawalAmount(Number(e.target.value))}
               placeholder="10000"
-              min="1"
-            />
-          </div>
+                min="1"
+              />
+            </div>
 
           <div>
             <Label htmlFor="frequency">Withdrawal Frequency</Label>
@@ -628,7 +653,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           </div>
 
           {withdrawalMode === 'Fund' && (
-            <div>
+          <div>
               <Label htmlFor="selected-fund">Select Fund for Withdrawal</Label>
               <Select value={selectedFundForWithdrawal} onValueChange={setSelectedFundForWithdrawal}>
                 <SelectTrigger>
@@ -642,65 +667,153 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-        </div>
+                    </div>
+                  )}
+                </div>
 
         {/* Initial Holdings Section */}
         <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-          <Label className="text-base font-semibold mb-3 block">Initial Holdings</Label>
-          <p className="text-sm text-slate-600 mb-4">
-            Enter the number of units you currently hold in each fund (before SWP withdrawals begin)
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {funds.map(fund => (
-              <div key={fund.id}>
-                <Label htmlFor={`initial-units-${fund.id}`}>
-                  {fund.name} - Units
-                </Label>
-                <Input
-                  id={`initial-units-${fund.id}`}
-                  type="number"
-                  value={initialHoldings[fund.id] || ''}
-                  onChange={(e) => setInitialHoldings({
-                    ...initialHoldings,
-                    [fund.id]: Number(e.target.value) || 0,
-                  })}
-                  placeholder="0.0000"
-                  step="0.0001"
-                  min="0"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Optional: Initial Investment Values */}
-          <div className="mt-4">
-            <Label className="text-sm font-medium mb-2 block">Initial Investment Values (Optional - for accurate XIRR)</Label>
-            <p className="text-xs text-slate-500 mb-2">
-              If you know the initial investment amount for each fund, enter it here. Otherwise, it will be estimated from initial NAV.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {funds.map(fund => (
-                <div key={fund.id}>
-                  <Label htmlFor={`initial-investment-${fund.id}`}>
-                    {fund.name} - Initial Investment (₹)
-                  </Label>
-                  <Input
-                    id={`initial-investment-${fund.id}`}
-                    type="number"
-                    value={initialInvestmentValues[fund.id] || ''}
-                    onChange={(e) => setInitialInvestmentValues({
-                      ...initialInvestmentValues,
-                      [fund.id]: Number(e.target.value) || 0,
-                    })}
-                    placeholder="0"
-                    min="0"
-                  />
-                </div>
-              ))}
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-base font-semibold block">Current Portfolio</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={inputMethod === 'value' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setInputMethod('value')}
+                className="text-xs"
+              >
+                By Value (₹)
+              </Button>
+              <Button
+                type="button"
+                variant={inputMethod === 'units' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setInputMethod('units')}
+                className="text-xs"
+              >
+                By Units
+              </Button>
             </div>
           </div>
+
+          {inputMethod === 'value' ? (
+            <>
+              <p className="text-sm text-slate-600 mb-4">
+                Enter your total current portfolio value. Units will be calculated automatically based on the NAV at start date and your fund weightage.
+              </p>
+              <div>
+                <Label htmlFor="initial-portfolio-value">Total Current Portfolio Value (₹)</Label>
+                <Input
+                  id="initial-portfolio-value"
+                  type="number"
+                  value={initialPortfolioValue || ''}
+                  onChange={(e) => setInitialPortfolioValue(Number(e.target.value) || 0)}
+                  placeholder="1000000"
+                  min="0"
+                  className="mt-2"
+                />
+                <p className="text-xs text-slate-500 mt-2">
+                  💡 This will be distributed across funds according to their weightage in your bucket
+                </p>
+              </div>
+
+              {/* Optional: Initial Investment Values for XIRR */}
+              <div className="mt-6 p-3 bg-blue-50 rounded border border-blue-200">
+                <details className="group">
+                  <summary className="cursor-pointer text-sm font-medium text-blue-900 flex items-center gap-2">
+                    <span>⚙️ Advanced: Initial Investment Amounts (Optional)</span>
+                    <span className="text-xs text-blue-700 font-normal">for accurate XIRR calculation</span>
+                  </summary>
+                  <p className="text-xs text-slate-600 mt-2 mb-3">
+                    If you know the original investment amount for each fund (from when you first invested), enter it here for more accurate XIRR. Otherwise, we'll use the calculated value from current portfolio and start date NAV.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {funds.map(fund => (
+                      <div key={fund.id}>
+                        <Label htmlFor={`initial-investment-${fund.id}`} className="text-xs">
+                          {fund.name} - Original Investment (₹)
+                        </Label>
+                        <Input
+                          id={`initial-investment-${fund.id}`}
+                          type="number"
+                          value={initialInvestmentValues[fund.id] || ''}
+                          onChange={(e) => setInitialInvestmentValues({
+                            ...initialInvestmentValues,
+                            [fund.id]: Number(e.target.value) || 0,
+                          })}
+                          placeholder="Auto-calculated"
+                          min="0"
+                          className="mt-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-slate-600 mb-4">
+                Enter the number of units you currently hold in each fund (before SWP withdrawals begin)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {funds.map(fund => (
+                  <div key={fund.id}>
+                    <Label htmlFor={`initial-units-${fund.id}`}>
+                      {fund.name} - Units
+                    </Label>
+                    <Input
+                      id={`initial-units-${fund.id}`}
+                      type="number"
+                      value={initialHoldings[fund.id] || ''}
+                      onChange={(e) => setInitialHoldings({
+                        ...initialHoldings,
+                        [fund.id]: Number(e.target.value) || 0,
+                      })}
+                      placeholder="0.0000"
+                      step="0.0001"
+                      min="0"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Optional: Initial Investment Values for XIRR */}
+              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                <details className="group">
+                  <summary className="cursor-pointer text-sm font-medium text-blue-900 flex items-center gap-2">
+                    <span>⚙️ Advanced: Initial Investment Amounts (Optional)</span>
+                    <span className="text-xs text-blue-700 font-normal">for accurate XIRR calculation</span>
+                  </summary>
+                  <p className="text-xs text-slate-600 mt-2 mb-3">
+                    If you know the original investment amount for each fund, enter it here for more accurate XIRR. Otherwise, we'll estimate from initial NAV.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {funds.map(fund => (
+                      <div key={fund.id}>
+                        <Label htmlFor={`initial-investment-${fund.id}`} className="text-xs">
+                          {fund.name} - Original Investment (₹)
+                        </Label>
+                        <Input
+                          id={`initial-investment-${fund.id}`}
+                          type="number"
+                          value={initialInvestmentValues[fund.id] || ''}
+                          onChange={(e) => setInitialInvestmentValues({
+                            ...initialInvestmentValues,
+                            [fund.id]: Number(e.target.value) || 0,
+                          })}
+                          placeholder="Auto-calculated"
+                          min="0"
+                          className="mt-1"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            </>
+          )}
         </div>
 
         <Button
@@ -755,7 +868,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                 result.profit >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
                 {result.profitPercentage >= 0 ? '+' : ''}{result.profitPercentage.toFixed(2)}%
-              </div>
+                  </div>
             </Card>
 
             <Card className="p-5 bg-gradient-to-br from-amber-50 to-orange-100 border-2 border-amber-200 shadow-lg hover:shadow-xl transition-shadow">
@@ -764,7 +877,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                 result.cagr >= 0 ? 'text-green-700' : 'text-red-700'
               }`}>
                 {result.cagr >= 0 ? '+' : ''}{result.cagr.toFixed(2)}%
-              </div>
+                </div>
             </Card>
 
             <Card className="p-5 bg-gradient-to-br from-violet-50 to-fuchsia-100 border-2 border-violet-200 shadow-lg hover:shadow-xl transition-shadow">
@@ -863,7 +976,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
             <div className="mb-6">
               <h3 className="text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
               <p className="text-sm text-slate-600">Detailed breakdown of each fund's performance during SWP</p>
-            </div>
+        </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -893,7 +1006,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                             style={{ backgroundColor: fundColor }}
                           />
                           {fund.fundName}
-                        </div>
+      </div>
                       </TableCell>
                       <TableCell>{formatCurrency(fund.initialInvested)}</TableCell>
                       <TableCell>{fund.initialUnits.toFixed(4)}</TableCell>
@@ -917,7 +1030,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                 })}
               </TableBody>
             </Table>
-          </Card>
+    </Card>
         </>
       )}
     </div>
