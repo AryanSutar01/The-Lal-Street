@@ -301,11 +301,291 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
   };
 
   const calculateSIPRolling = async () => {
-    // This will be the existing SIP rolling logic
-    // For now, just forward to the lumpsum but with SIP logging
-    console.log('[Rolling SIP] Starting SIP rolling returns calculation...');
-    setError("SIP rolling returns coming soon! Using Lumpsum logic for now.");
-    setIsLoading(false);
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      const windowMonths = rollingWindowType === 'years' ? rollingWindowValue * 12 : rollingWindowValue;
+      
+      // Fetch NAV data - need extended period to cover all rolling windows
+      const extendedStartDate = addMonths(startDate, -windowMonths);
+      const fundSchemeCodes = funds.map(f => f.id);
+      
+      console.log(`[Rolling SIP] Window: ${windowMonths} months, Period: Monthly rolling`);
+      
+      const navResponses = await fetchNAVData(fundSchemeCodes, extendedStartDate, endDate);
+      
+      if (navResponses.length === 0) {
+        throw new Error("No NAV data available for the selected funds in the given period.");
+      }
+      
+      const initialInvestment = monthlyInvestment; // Monthly SIP amount
+      const fundRollingDataArray: FundRollingData[] = [];
+      
+      // Generate monthly rolling start dates (SIP always uses monthly rolling)
+      const rollingStartDates: string[] = [];
+      let currentStart = new Date(start);
+      
+      while (currentStart <= end) {
+        const windowEnd = addMonthsToDate(currentStart, windowMonths);
+        if (windowEnd > end) break;
+        
+        rollingStartDates.push(currentStart.toISOString().split('T')[0]);
+        
+        // Move to next month for monthly rolling
+        currentStart = addMonthsToDate(currentStart, 1);
+      }
+      
+      console.log(`[Rolling SIP] Generated ${rollingStartDates.length} rolling windows`);
+      
+      // Calculate for each fund
+      funds.forEach(fund => {
+        const navResponse = navResponses.find(nav => nav.schemeCode === fund.id);
+        if (!navResponse) return;
+        
+        const fundInvestment = initialInvestment * (fund.weightage / 100);
+        const rollingReturns: RollingReturn[] = [];
+        const navData = navResponse.navData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        // Process each rolling window
+        rollingStartDates.forEach(windowStartDate => {
+          const windowStart = new Date(windowStartDate);
+          const windowEnd = addMonthsToDate(windowStart, windowMonths);
+          
+          if (windowEnd > end) return;
+          
+          // Generate SIP investment dates within this window
+          const sipInvestments: Array<{plannedDate: string, actualDate: string, nav: number}> = [];
+          let currentSIPDate = windowStartDate;
+          let loopCount = 0;
+          const maxIterations = windowMonths + 2; // Safety limit
+          
+          while (loopCount < maxIterations) {
+            loopCount++;
+            const plannedDateObj = new Date(currentSIPDate);
+            
+            // Stop if planned date is beyond window end
+            if (plannedDateObj >= windowEnd) break;
+            
+            // Find next available NAV for this SIP date
+            const navEntry = getNextAvailableNAV(navData, currentSIPDate);
+            
+            if (navEntry && navEntry.nav > 0) {
+              const actualDate = new Date(navEntry.date);
+              
+              // Only include if actual investment date is within or very close to window end
+              // (within 7 days after window end to handle holidays)
+              const daysAfterWindowEnd = (actualDate.getTime() - windowEnd.getTime()) / (1000 * 60 * 60 * 24);
+              
+              if (actualDate <= windowEnd || (daysAfterWindowEnd >= 0 && daysAfterWindowEnd <= 7)) {
+                sipInvestments.push({
+                  plannedDate: currentSIPDate,
+                  actualDate: navEntry.date,
+                  nav: navEntry.nav
+                });
+                
+                // Move to next month
+                currentSIPDate = addMonths(currentSIPDate, 1);
+              } else {
+                // Investment date is too far after window end, stop
+                break;
+              }
+            } else {
+              // No NAV found, try next month
+              currentSIPDate = addMonths(currentSIPDate, 1);
+            }
+          }
+          
+          if (sipInvestments.length === 0) return; // Skip windows with no investments
+          
+          // Track SIP investments and calculate final value
+          let totalUnits = 0;
+          const cashFlows: Array<{date: Date, amount: number}> = [];
+          
+          sipInvestments.forEach(({ actualDate, nav }) => {
+            const unitsPurchased = fundInvestment / nav;
+            totalUnits += unitsPurchased;
+            cashFlows.push({
+              date: new Date(actualDate),
+              amount: -fundInvestment // Negative = outflow (investment)
+            });
+          });
+          
+          // Get final NAV at window end date
+          const finalNavEntry = getLatestNAVBeforeDate(navData, windowEnd.toISOString().split('T')[0]);
+          
+          if (finalNavEntry && finalNavEntry.nav > 0 && totalUnits > 0) {
+            const finalValue = totalUnits * finalNavEntry.nav;
+            cashFlows.push({
+              date: windowEnd,
+              amount: finalValue // Positive = inflow (redemption)
+            });
+            
+            // Calculate XIRR for this window
+            const xirr = calculateXIRR(cashFlows);
+            
+            if (!isNaN(xirr) && isFinite(xirr)) {
+              rollingReturns.push({
+                startDate: windowStartDate,
+                endDate: windowEnd.toISOString().split('T')[0],
+                xirr: xirr
+              });
+            }
+          }
+        });
+        
+        // Calculate statistics for this fund
+        const xirrValues = rollingReturns.map(r => r.xirr);
+        const stats = calculateStatistics(xirrValues);
+        
+        fundRollingDataArray.push({
+          fundId: fund.id,
+          fundName: fund.name,
+          rollingReturns,
+          ...stats
+        });
+      });
+      
+      // Calculate bucket rolling returns
+      const bucketRollingReturns: RollingReturn[] = [];
+      
+      rollingStartDates.forEach(windowStartDate => {
+        const windowStart = new Date(windowStartDate);
+        const windowEnd = addMonthsToDate(windowStart, windowMonths);
+        
+        if (windowEnd > end) return;
+        
+        // Generate SIP dates for bucket (use first fund's NAV dates as reference)
+        const firstFundNav = navResponses[0].navData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sipDates: Array<{plannedDate: string, actualDate: string}> = [];
+        let currentSIPDate = windowStartDate;
+        let loopCount = 0;
+        const maxIterations = windowMonths + 2;
+        
+        while (loopCount < maxIterations) {
+          loopCount++;
+          const plannedDateObj = new Date(currentSIPDate);
+          if (plannedDateObj >= windowEnd) break;
+          
+          const navEntry = getNextAvailableNAV(firstFundNav, currentSIPDate);
+          if (navEntry) {
+            const actualDate = new Date(navEntry.date);
+            const daysAfterWindowEnd = (actualDate.getTime() - windowEnd.getTime()) / (1000 * 60 * 60 * 24);
+            
+            if (actualDate <= windowEnd || (daysAfterWindowEnd >= 0 && daysAfterWindowEnd <= 7)) {
+              sipDates.push({
+                plannedDate: currentSIPDate,
+                actualDate: navEntry.date
+              });
+              currentSIPDate = addMonths(currentSIPDate, 1);
+            } else {
+              break;
+            }
+          } else {
+            currentSIPDate = addMonths(currentSIPDate, 1);
+          }
+        }
+        
+        if (sipDates.length === 0) return;
+        
+        // Track bucket investments across all funds
+        const bucketCashFlows: Array<{date: Date, amount: number}> = [];
+        let bucketTotalUnits = new Map<string, number>(); // fundId -> units
+        
+        // Initialize units tracking for each fund
+        funds.forEach(fund => {
+          bucketTotalUnits.set(fund.id, 0);
+        });
+        
+        sipDates.forEach(({ actualDate }) => {
+          let bucketInvestment = 0;
+          
+          funds.forEach(fund => {
+            const navResponse = navResponses.find(nav => nav.schemeCode === fund.id);
+            if (!navResponse) return;
+            
+            const fundInvestment = initialInvestment * (fund.weightage / 100);
+            const navEntry = getNextAvailableNAV(navResponse.navData, actualDate);
+            
+            if (navEntry && navEntry.nav > 0) {
+              const unitsPurchased = fundInvestment / navEntry.nav;
+              const currentUnits = bucketTotalUnits.get(fund.id) || 0;
+              bucketTotalUnits.set(fund.id, currentUnits + unitsPurchased);
+              bucketInvestment += fundInvestment;
+            }
+          });
+          
+          if (bucketInvestment > 0) {
+            bucketCashFlows.push({
+              date: new Date(actualDate),
+              amount: -bucketInvestment
+            });
+          }
+        });
+        
+        // Calculate final bucket value
+        let bucketFinalValue = 0;
+        let allFundsValid = true;
+        
+        funds.forEach(fund => {
+          const navResponse = navResponses.find(nav => nav.schemeCode === fund.id);
+          if (!navResponse) {
+            allFundsValid = false;
+            return;
+          }
+          
+          const finalNavEntry = getLatestNAVBeforeDate(navResponse.navData, windowEnd.toISOString().split('T')[0]);
+          const fundUnits = bucketTotalUnits.get(fund.id) || 0;
+          
+          if (finalNavEntry && finalNavEntry.nav > 0) {
+            bucketFinalValue += fundUnits * finalNavEntry.nav;
+          } else {
+            allFundsValid = false;
+          }
+        });
+        
+        if (allFundsValid && bucketFinalValue > 0 && bucketCashFlows.length > 0) {
+          bucketCashFlows.push({
+            date: windowEnd,
+            amount: bucketFinalValue
+          });
+          
+          const xirr = calculateXIRR(bucketCashFlows);
+          
+          if (!isNaN(xirr) && isFinite(xirr)) {
+            bucketRollingReturns.push({
+              startDate: windowStartDate,
+              endDate: windowEnd.toISOString().split('T')[0],
+              xirr: xirr
+            });
+          }
+        }
+      });
+      
+      // Calculate statistics for bucket
+      const bucketXirrValues = bucketRollingReturns.map(r => r.xirr);
+      const bucketStats = calculateStatistics(bucketXirrValues);
+      
+      console.log('[Rolling SIP] Complete:', {
+        windowCount: bucketRollingReturns.length,
+        mean: bucketStats.mean.toFixed(2) + '%'
+      });
+      
+      setResult({
+        bucketData: {
+          rollingReturns: bucketRollingReturns,
+          ...bucketStats
+        },
+        fundData: fundRollingDataArray
+      });
+      
+      setSelectedFundView('bucket');
+      setIsLoading(false);
+    } catch (err: any) {
+      console.error('[Rolling SIP] Error:', err);
+      setError(err.message || "An unexpected error occurred during calculation.");
+      setIsLoading(false);
+    }
   };
 
   // Prepare chart data based on selected view
@@ -423,7 +703,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
             <Button 
               onClick={calculateRolling}
               disabled={isLoading || funds.length === 0}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Calculating...' : 'Calculate'}
             </Button>
