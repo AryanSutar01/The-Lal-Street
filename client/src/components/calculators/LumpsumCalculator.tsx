@@ -218,19 +218,19 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
 
   return (
     <Card className="bg-white border-slate-200 shadow-sm">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
           <div>
-            <h2 className="text-slate-900 mb-1">Lumpsum Calculator</h2>
-            <p className="text-sm text-slate-600">Calculate returns on one-time investment</p>
+            <h2 className="text-lg sm:text-xl text-slate-900 mb-1">Lumpsum Calculator</h2>
+            <p className="text-xs sm:text-sm text-slate-600">Calculate returns on one-time investment</p>
           </div>
-          <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">
+          <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50 text-xs sm:text-sm w-fit">
             {funds.length} {funds.length === 1 ? 'Fund' : 'Funds'} Selected
           </Badge>
         </div>
 
         {/* Input Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="space-y-2">
             <Label htmlFor="investment-amount">Total Investment (₹)</Label>
             <Input
@@ -295,27 +295,27 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         {result && (
           <div className="space-y-6">
             {/* Performance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Investment</div>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-lg sm:text-2xl font-bold text-slate-900">
                   ₹{result.bucketPerformance.totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
                 <div className="text-xs text-blue-600 mt-2">One-time lumpsum</div>
               </Card>
 
-              <Card className="p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-1">Current Bucket Value</div>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-lg sm:text-2xl font-bold text-slate-900">
                   ₹{result.bucketPerformance.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
                 <div className="text-xs text-indigo-600 mt-2">Portfolio worth</div>
               </Card>
 
-              <Card className={`p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${result.bucketPerformance.absoluteProfit >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-200' : 'bg-gradient-to-br from-red-50 to-rose-100 border-red-200'}`}>
+              <Card className={`p-3 sm:p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${result.bucketPerformance.absoluteProfit >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-200' : 'bg-gradient-to-br from-red-50 to-rose-100 border-red-200'}`}>
                 <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>Absolute Profit</div>
-                <div className={`text-2xl font-bold flex items-center gap-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {result.bucketPerformance.absoluteProfit >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+                <div className={`text-lg sm:text-2xl font-bold flex items-center gap-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {result.bucketPerformance.absoluteProfit >= 0 ? <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" /> : <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
                   {result.bucketPerformance.absoluteProfitPercent.toFixed(2)}%
                 </div>
                 <div className={`text-xs mt-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -323,9 +323,9 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                 </div>
               </Card>
 
-              <Card className="p-5 bg-gradient-to-br from-purple-50 to-violet-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-violet-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">CAGR</div>
-                <div className={`text-2xl font-bold ${result.bucketPerformance.cagr >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                <div className={`text-lg sm:text-2xl font-bold ${result.bucketPerformance.cagr >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   {result.bucketPerformance.cagr >= 0 ? '+' : ''}{result.bucketPerformance.cagr.toFixed(2)}%
                 </div>
                 <div className="text-xs text-purple-600 mt-2">
@@ -336,24 +336,24 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
 
             {/* Fund Performance Table */}
             <Card className="border-2 border-slate-200 shadow-xl">
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Fund-wise Performance</h3>
-                  <p className="text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
+              <div className="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Fund-wise Performance</h3>
+                  <p className="text-xs sm:text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
-                        <TableHead className="text-slate-700">Fund Name</TableHead>
-                        <TableHead className="text-slate-700 text-right">Investment</TableHead>
-                        <TableHead className="text-slate-700 text-right">Units Purchased</TableHead>
-                        <TableHead className="text-slate-700 text-right">Start NAV</TableHead>
-                        <TableHead className="text-slate-700 text-right">End NAV</TableHead>
-                        <TableHead className="text-slate-700 text-right">Current Value</TableHead>
-                        <TableHead className="text-slate-700 text-right">Profit/Loss</TableHead>
-                        <TableHead className="text-slate-700 text-right">Returns %</TableHead>
-                        <TableHead className="text-slate-700 text-right">CAGR</TableHead>
+                        <TableHead className="text-slate-700 text-xs sm:text-sm">Fund Name</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Investment</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Units Purchased</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Start NAV</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">End NAV</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Current Value</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Profit/Loss</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Returns %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">CAGR</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -435,7 +435,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                 <p className="text-sm text-slate-600">Visual representation of your portfolio growth</p>
               </div>
               <div className="max-w-4xl mx-auto">
-                <ResponsiveContainer width="100%" height={400}>
+                <div className="w-full h-[300px] sm:h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={chartData}
                     layout="vertical"
@@ -467,7 +468,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                </div>
               </div>
               
               {/* Growth Indicator */}

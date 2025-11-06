@@ -632,7 +632,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
         </div>
 
         {/* Input Section */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="space-y-2">
             <Label htmlFor="monthly-investment">Monthly Investment (₹)</Label>
             <Input
@@ -799,21 +799,22 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
             </Card>
 
             {/* Rolling Returns Chart */}
-            <Card className="p-6 border-2 border-slate-200 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
+            <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-1">
                     Rolling Returns - {selectedFundView === 'bucket' ? 'Bucket' : result.fundData.find(f => f.fundId === selectedFundView)?.fundName}
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-xs sm:text-sm text-slate-600">
                     {investmentStrategy === 'lumpsum' ? 'Lumpsum' : 'SIP'} • {rollingPeriod === 'daily' ? 'Daily' : 'Monthly'} Rolling
                   </p>
                 </div>
-                <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-sm px-3 py-1.5">
+                <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 w-fit">
                   {rollingWindowValue} {rollingWindowType === 'years' ? 'Year' : 'Month'} Window
                 </Badge>
               </div>
-              <ResponsiveContainer width="100%" height={400}>
+              <div className="w-full h-[300px] sm:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis 
@@ -861,27 +862,28 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
                     animationDuration={800}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
             {/* Statistics Table */}
             <Card className="border-2 border-slate-200 shadow-xl">
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Rolling Returns Statistics</h3>
-                  <p className="text-sm text-slate-600">Statistical analysis of rolling window performance metrics</p>
+              <div className="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Rolling Returns Statistics</h3>
+                  <p className="text-xs sm:text-sm text-slate-600">Statistical analysis of rolling window performance metrics</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
-                        <TableHead className="text-slate-700">Fund Name</TableHead>
-                        <TableHead className="text-slate-700 text-right">Mean %</TableHead>
-                        <TableHead className="text-slate-700 text-right">Median %</TableHead>
-                        <TableHead className="text-slate-700 text-right">Max %</TableHead>
-                        <TableHead className="text-slate-700 text-right">Min %</TableHead>
-                        <TableHead className="text-slate-700 text-right">Std Deviation %</TableHead>
-                        <TableHead className="text-slate-700 text-right">Positive Periods %</TableHead>
+                        <TableHead className="text-slate-700 text-xs sm:text-sm">Fund Name</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Mean %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Median %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Max %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Min %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Std Deviation %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Positive Periods %</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

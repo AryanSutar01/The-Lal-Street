@@ -117,12 +117,13 @@ export default function App() {
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  The Lal Street
-                </h1>
-                <p className="text-xs text-slate-500">Portfolio Analysis & Investment Calculator</p>
-              </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                The Lal Street
+              </h1>
+              <p className="text-xs text-slate-500 hidden sm:block">Portfolio Analysis & Investment Calculator</p>
+              <p className="text-xs text-slate-500 sm:hidden">Investment Calculator</p>
+            </div>
             </div>
             
             {/* Stats Badge */}
@@ -152,40 +153,40 @@ export default function App() {
 
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {/* Hero Section / Header */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden border border-blue-500">
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden border border-blue-500">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -translate-y-32 translate-x-32"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full translate-y-24 -translate-x-24"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-white rounded-full -translate-y-16 translate-x-16 sm:-translate-y-32 sm:translate-x-32"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-white rounded-full translate-y-12 -translate-x-12 sm:translate-y-24 sm:-translate-x-24"></div>
             </div>
             
             <div className="relative">
-              <div className="flex items-center gap-2 mb-3">
-                <BarChart3 className="w-6 h-6" />
-                <span className="text-sm font-medium opacity-90">Professional Investment Tools</span>
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm font-medium opacity-90">Professional Investment Tools</span>
               </div>
-              <h2 className="text-3xl font-bold mb-3">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3">
                 Mutual Fund Portfolio Calculator
               </h2>
-              <p className="text-blue-100 max-w-2xl">
+              <p className="text-blue-100 text-sm sm:text-base max-w-2xl">
                 Analyze your portfolio performance with real-time NAV data. Calculate SIP returns, lumpsum investments, 
                 rolling returns, and systematic withdrawal plans with industry-standard metrics.
               </p>
               
               {/* Feature Pills */}
-              <div className="flex flex-wrap gap-2 mt-6">
-                <div className="px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-4 sm:mt-6">
+                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
                   ✓ Real NAV Data
                 </div>
-                <div className="px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ XIRR & CAGR Calculations
+                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
+                  ✓ XIRR & CAGR
                 </div>
-                <div className="px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ Rolling Returns Analysis
+                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
+                  ✓ Rolling Returns
                 </div>
-                <div className="px-3 py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ Multi-Fund Buckets
+                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
+                  ✓ Multi-Fund
                 </div>
               </div>
             </div>
@@ -238,37 +239,37 @@ export default function App() {
             </p>
             
             {/* Quick Guide */}
-            <div className="max-w-2xl mx-auto mt-12">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="p-5 rounded-xl bg-white border-2 border-blue-200 shadow-lg hover:shadow-xl hover:border-blue-300 transition-all">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mx-auto mb-3 shadow-md">
-                    <span className="text-2xl">🔍</span>
+            <div className="max-w-2xl mx-auto mt-8 sm:mt-12">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-blue-200 shadow-lg hover:shadow-xl hover:border-blue-300 transition-all">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
+                    <span className="text-xl sm:text-2xl">🔍</span>
                   </div>
-                  <h4 className="font-semibold text-slate-900 mb-1">1. Search Funds</h4>
+                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">1. Search Funds</h4>
                   <p className="text-xs text-slate-600">Find mutual funds by name or code</p>
                 </div>
                 
-                <div className="p-5 rounded-xl bg-white border-2 border-green-200 shadow-lg hover:shadow-xl hover:border-green-300 transition-all">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center mx-auto mb-3 shadow-md">
-                    <span className="text-2xl">📊</span>
+                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 shadow-lg hover:shadow-xl hover:border-green-300 transition-all">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
+                    <span className="text-xl sm:text-2xl">📊</span>
                   </div>
-                  <h4 className="font-semibold text-slate-900 mb-1">2. Set Weightage</h4>
+                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">2. Set Weightage</h4>
                   <p className="text-xs text-slate-600">Allocate portfolio percentages</p>
                 </div>
                 
-                <div className="p-5 rounded-xl bg-white border-2 border-amber-200 shadow-lg hover:shadow-xl hover:border-amber-300 transition-all">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center mx-auto mb-3 shadow-md">
-                    <span className="text-2xl">🧮</span>
+                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-amber-200 shadow-lg hover:shadow-xl hover:border-amber-300 transition-all">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
+                    <span className="text-xl sm:text-2xl">🧮</span>
                   </div>
-                  <h4 className="font-semibold text-slate-900 mb-1">3. Choose Calculator</h4>
+                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">3. Choose Calculator</h4>
                   <p className="text-xs text-slate-600">Select SIP, Lumpsum, or Rolling</p>
                 </div>
                 
-                <div className="p-5 rounded-xl bg-white border-2 border-purple-200 shadow-lg hover:shadow-xl hover:border-purple-300 transition-all">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center mx-auto mb-3 shadow-md">
-                    <span className="text-2xl">📈</span>
+                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-purple-200 shadow-lg hover:shadow-xl hover:border-purple-300 transition-all">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
+                    <span className="text-xl sm:text-2xl">📈</span>
                   </div>
-                  <h4 className="font-semibold text-slate-900 mb-1">4. Analyze Results</h4>
+                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">4. Analyze Results</h4>
                   <p className="text-xs text-slate-600">View returns, XIRR, and charts</p>
                 </div>
               </div>

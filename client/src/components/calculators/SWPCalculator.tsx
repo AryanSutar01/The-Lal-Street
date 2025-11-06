@@ -573,10 +573,10 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">SWP Calculator</h2>
+      <Card className="p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">SWP Calculator</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <Label htmlFor="start-date">Start Date</Label>
               <Input
@@ -834,23 +834,23 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       {result && (
         <>
           {/* Performance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+            <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Invested</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="p-3 sm:p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-1">Total Withdrawn</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.totalWithdrawn)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalWithdrawn)}</div>
             </Card>
 
-            <Card className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">Current Value</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.currentValue)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.currentValue)}</div>
             </Card>
 
-            <Card className={`p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${
+            <Card className={`p-3 sm:p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${
               result.profit >= 0
                 ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-200'
                 : 'bg-gradient-to-br from-red-50 to-rose-100 border-red-200'
@@ -858,7 +858,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${
                 result.profit >= 0 ? 'text-green-700' : 'text-red-700'
               }`}>Profit/Loss</div>
-              <div className={`text-2xl font-bold flex items-center gap-2 ${
+              <div className={`text-lg sm:text-2xl font-bold flex items-center gap-2 ${
                 result.profit >= 0 ? 'text-green-700' : 'text-red-700'
               }`}>
                 {result.profit >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
@@ -891,14 +891,15 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           </div>
 
           {/* Chart */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Performance Over Time</h3>
-              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900">Performance Over Time</h3>
+              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs sm:text-sm w-fit">
                 {result.chartData.length} data points
               </Badge>
             </div>
-            <ResponsiveContainer width="100%" height={450}>
+            <div className="w-full h-[300px] sm:h-[450px]">
+              <ResponsiveContainer width="100%" height="100%">
               <LineChart data={result.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis
@@ -968,28 +969,30 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                   );
                 })}
               </LineChart>
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
           </Card>
 
           {/* Fund Details Table */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
-              <p className="text-sm text-slate-600">Detailed breakdown of each fund's performance during SWP</p>
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
+              <p className="text-xs sm:text-sm text-slate-600">Detailed breakdown of each fund's performance during SWP</p>
         </div>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fund Name</TableHead>
-                  <TableHead>Initial Invested</TableHead>
-                  <TableHead>Initial Units</TableHead>
-                  <TableHead>Total Withdrawn</TableHead>
-                  <TableHead>Remaining Units</TableHead>
-                  <TableHead>Current Value</TableHead>
-                  <TableHead>Profit/Loss</TableHead>
-                  <TableHead>% Return</TableHead>
-                  <TableHead>CAGR</TableHead>
-                  <TableHead>XIRR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Fund Name</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Initial Invested</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Initial Units</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Total Withdrawn</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Remaining Units</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Current Value</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Profit/Loss</TableHead>
+                  <TableHead className="text-xs sm:text-sm">% Return</TableHead>
+                  <TableHead className="text-xs sm:text-sm">CAGR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">XIRR</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1030,6 +1033,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                 })}
               </TableBody>
             </Table>
+            </div>
     </Card>
         </>
       )}

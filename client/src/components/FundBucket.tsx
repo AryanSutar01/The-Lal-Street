@@ -26,11 +26,11 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Fund Bucket</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Fund Bucket</h3>
+          <p className="text-xs sm:text-sm text-gray-600">
             Manage your selected funds and weightage allocation 
             <span className={`ml-2 font-medium ${funds.length >= 5 ? 'text-red-600' : 'text-blue-600'}`}>
               ({funds.length}/5 funds)
@@ -38,8 +38,8 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Total Weightage</span>
-          <span className={`text-2xl font-bold ${isValidAllocation ? 'text-green-600' : 'text-red-600'}`}>
+          <span className="text-xs sm:text-sm text-gray-600">Total Weightage</span>
+          <span className={`text-xl sm:text-2xl font-bold ${isValidAllocation ? 'text-green-600' : 'text-red-600'}`}>
             {totalWeightage.toFixed(0)}%
           </span>
         </div>
@@ -57,32 +57,91 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
         </div>
       ) : (
         <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fund Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Launch Date</TableHead>
-                <TableHead className="text-center">Weightage (%)</TableHead>
-                <TableHead className="text-center">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {funds.map((fund) => (
-                <TableRow key={fund.id}>
-                  <TableCell className="font-medium">
-                    {fund.name}
-                    <div className="text-xs text-gray-400 mt-1">Code: {fund.id}</div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="capitalize">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fund Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Launch Date</TableHead>
+                  <TableHead className="text-center">Weightage (%)</TableHead>
+                  <TableHead className="text-center">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {funds.map((fund) => (
+                  <TableRow key={fund.id}>
+                    <TableCell className="font-medium">
+                      {fund.name}
+                      <div className="text-xs text-gray-400 mt-1">Code: {fund.id}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">
+                        {fund.category || 'Unknown'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {formatDate(fund.launchDate)}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={fund.weightage}
+                        onChange={(e) => onWeightageChange(fund.id, parseFloat(e.target.value) || 0)}
+                        className="w-24 text-center mx-auto"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveFund(fund.id)}
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {funds.map((fund) => (
+              <Card key={fund.id} className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm text-gray-900 truncate">{fund.name}</h4>
+                    <p className="text-xs text-gray-400 mt-0.5">Code: {fund.id}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemoveFund(fund.id)}
+                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0 ml-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Category</label>
+                    <Badge variant="secondary" className="capitalize text-xs">
                       {fund.category || 'Unknown'}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-gray-600">
-                    {formatDate(fund.launchDate)}
-                  </TableCell>
-                  <TableCell>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Launch Date</label>
+                    <p className="text-xs text-gray-600">{formatDate(fund.launchDate)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs text-gray-500 mb-1 block">Weightage (%)</label>
                     <Input
                       type="number"
                       min="0"
@@ -90,23 +149,13 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
                       step="0.1"
                       value={fund.weightage}
                       onChange={(e) => onWeightageChange(fund.id, parseFloat(e.target.value) || 0)}
-                      className="w-24 text-center mx-auto"
+                      className="w-full text-center"
                     />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemoveFund(fund.id)}
-                      className="text-gray-400 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
 
           {!isValidAllocation && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

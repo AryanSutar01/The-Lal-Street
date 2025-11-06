@@ -94,8 +94,8 @@ export function FundSearch({ onSelectFund }: FundSearchProps) {
         </div>
 
         {/* Filter Buttons */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600 font-medium">Filter:</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs sm:text-sm text-gray-600 font-medium">Filter:</span>
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
             size="sm"

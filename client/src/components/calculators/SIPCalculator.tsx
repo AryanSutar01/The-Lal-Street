@@ -439,10 +439,10 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">SIP Calculator</h2>
+      <Card className="p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">SIP Calculator</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div>
             <Label htmlFor="monthly-investment">Monthly Investment (₹)</Label>
             <Input
@@ -507,10 +507,10 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         {result && (
         <>
             {/* Performance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+            <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Invested</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
               <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 {result.installments} installments
@@ -566,14 +566,15 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
           </div>
 
             {/* Chart */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Performance Over Time</h3>
-              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900">Performance Over Time</h3>
+              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs sm:text-sm w-fit">
                 {result.chartData.length} data points
               </Badge>
             </div>
-              <ResponsiveContainer width="100%" height={450}>
+              <div className="w-full h-[300px] sm:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
               <LineChart data={result.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
@@ -631,25 +632,27 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                     );
                   })}
                 </LineChart>
-            </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
           {/* Fund Details Table */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
-              <p className="text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
+              <p className="text-xs sm:text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
             </div>
+            <div className="overflow-x-auto">
                   <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fund Name</TableHead>
-                  <TableHead>Total Invested</TableHead>
-                  <TableHead>Current Value</TableHead>
-                  <TableHead>Profit/Loss</TableHead>
-                  <TableHead>% Returns</TableHead>
-                  <TableHead>CAGR</TableHead>
-                  <TableHead>XIRR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Fund Name</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Total Invested</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Current Value</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Profit/Loss</TableHead>
+                  <TableHead className="text-xs sm:text-sm">% Returns</TableHead>
+                  <TableHead className="text-xs sm:text-sm">CAGR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">XIRR</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -687,6 +690,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                 })}
               </TableBody>
             </Table>
+            </div>
           </Card>
         </>
         )}
