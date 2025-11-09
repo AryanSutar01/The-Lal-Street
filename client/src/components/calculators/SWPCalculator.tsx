@@ -11,7 +11,8 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
-import { getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, getToday } from '../../utils/dateUtils';
+import { getLatestNAVBeforeDate, getYearsBetween, getToday } from '../../utils/dateUtils';
+import { simulateSWP, SWPStrategy } from '../../utils/swpSimulation';
 
 interface SWPCalculatorProps {
   funds: SelectedFund[];
@@ -61,14 +62,44 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+const DEFAULT_RISK_ORDER = [
+  'LIQUID',
+  'DEBT',
+  'HYBRID',
+  'EQUITY_L',
+  'EQUITY_M',
+  'EQUITY_S',
+] as const;
+
+const RISK_BUCKET_LABELS: Record<string, string> = {
+  LIQUID: 'Liquid / Overnight',
+  DEBT: 'Debt / Income',
+  HYBRID: 'Hybrid / Balanced',
+  EQUITY_L: 'Equity - Large',
+  EQUITY_M: 'Equity - Mid',
+  EQUITY_S: 'Equity - Small',
+};
+
+const deriveRiskBucket = (category: string | undefined): string => {
+  if (!category) return 'EQUITY_M';
+  const normalized = category.toLowerCase();
+  if (normalized.includes('liquid') || normalized.includes('overnight')) return 'LIQUID';
+  if (normalized.includes('debt') || normalized.includes('income') || normalized.includes('bond')) return 'DEBT';
+  if (normalized.includes('hybrid') || normalized.includes('balanced') || normalized.includes('allocation')) return 'HYBRID';
+  if (normalized.includes('mid')) return 'EQUITY_M';
+  if (normalized.includes('small')) return 'EQUITY_S';
+  if (normalized.includes('large')) return 'EQUITY_L';
+  return 'EQUITY_M';
+};
+
 export function SWPCalculator({ funds }: SWPCalculatorProps) {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [withdrawalAmount, setWithdrawalAmount] = useState<number>(10000);
   const [frequency, setFrequency] = useState<'Monthly' | 'Quarterly' | 'Custom'>('Monthly');
   const [customFrequencyDays, setCustomFrequencyDays] = useState<number>(30);
-  const [withdrawalMode, setWithdrawalMode] = useState<'Bucket' | 'Fund'>('Bucket');
-  const [selectedFundForWithdrawal, setSelectedFundForWithdrawal] = useState<string>('');
+  const [strategy, setStrategy] = useState<SWPStrategy>('PROPORTIONAL');
+  const [fundRisk, setFundRisk] = useState<Record<string, string>>({});
   const [initialHoldings, setInitialHoldings] = useState<Record<string, number>>({});
   const [initialInvestmentValues, setInitialInvestmentValues] = useState<Record<string, number>>({});
   const [inputMethod, setInputMethod] = useState<'value' | 'units'>('value');
@@ -79,19 +110,29 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
   // Initialize initial holdings when funds change
   useEffect(() => {
-    const holdings: Record<string, number> = {};
-    const investments: Record<string, number> = {};
-    funds.forEach(fund => {
-      holdings[fund.id] = initialHoldings[fund.id] || 0;
-      investments[fund.id] = initialInvestmentValues[fund.id] || 0;
+    setInitialHoldings(prev => {
+      const updated: Record<string, number> = {};
+      funds.forEach(fund => {
+        updated[fund.id] = prev[fund.id] ?? 0;
+      });
+      return updated;
     });
-    setInitialHoldings(holdings);
-    setInitialInvestmentValues(investments);
-    
-    // Set first fund as default for Fund Mode
-    if (funds.length > 0 && !selectedFundForWithdrawal) {
-      setSelectedFundForWithdrawal(funds[0].id);
-    }
+
+    setInitialInvestmentValues(prev => {
+      const updated: Record<string, number> = {};
+      funds.forEach(fund => {
+        updated[fund.id] = prev[fund.id] ?? 0;
+      });
+      return updated;
+    });
+
+    setFundRisk(prev => {
+      const updated: Record<string, string> = {};
+      funds.forEach(fund => {
+        updated[fund.id] = prev[fund.id] ?? deriveRiskBucket(fund.category);
+      });
+      return updated;
+    });
   }, [funds]);
 
   // Generate withdrawal dates based on frequency
@@ -122,12 +163,14 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
   };
 
   const calculateSWP = async () => {
+    const roundTo2 = (value: number) =>
+      Math.round((value + Number.EPSILON) * 100) / 100;
+
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      // Validation
       if (!startDate || !endDate) {
         throw new Error('Please select both start and end dates');
       }
@@ -144,23 +187,27 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         throw new Error('Please select at least one fund');
       }
 
-      if (withdrawalMode === 'Fund' && !selectedFundForWithdrawal) {
-        throw new Error('Please select a fund for Fund Mode withdrawal');
+      if (strategy === 'RISK_BUCKET') {
+        const missingRisk = funds.filter(fund => !fundRisk[fund.id]);
+        if (missingRisk.length > 0) {
+          throw new Error('Please assign a risk bucket to every fund for Risk Bucket strategy');
+        }
       }
 
-      // Validate inputs based on method
       if (inputMethod === 'value') {
         if (initialPortfolioValue <= 0) {
           throw new Error('Please enter your current portfolio value');
         }
       } else {
-        const totalInitialUnits = Object.values(initialHoldings).reduce((sum, units) => sum + (units || 0), 0);
+        const totalInitialUnits = Object.values(initialHoldings).reduce(
+          (sum, units) => sum + (units || 0),
+          0
+        );
         if (totalInitialUnits === 0) {
           throw new Error('Please enter initial holdings (number of units) for at least one fund');
         }
       }
 
-      // Fetch NAV data for all funds
       const schemeCodes = funds.map(f => f.id);
       const navResponses = await fetchNAVData(schemeCodes, startDate, endDate);
 
@@ -168,77 +215,111 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         throw new Error('No NAV data available for the selected funds in the date range');
       }
 
-      // Generate withdrawal dates
-      const plannedWithdrawalDates = generateWithdrawalDates(startDate, endDate);
+      const navMap: Record<string, { date: string; nav: number }[]> = {};
+      navResponses.forEach(nav => {
+        navMap[nav.schemeCode] = nav.navData.map(entry => ({
+          date: entry.date,
+          nav: Number(entry.nav),
+        }));
+      });
 
-      // Initialize fund state
-      const fundStates = funds.map(fund => {
-        const navData = navResponses.find(nav => nav.schemeCode === fund.id);
-        if (!navData) {
+      const plannedWithdrawalDates = generateWithdrawalDates(startDate, endDate);
+      if (plannedWithdrawalDates.length === 0) {
+        throw new Error('No withdrawal dates generated for the given range');
+      }
+
+      const targetWeightSum = funds.reduce((sum, fund) => sum + fund.weightage, 0);
+      if (targetWeightSum <= 0) {
+        throw new Error('Invalid fund weightages selected');
+      }
+
+      const targetWeights: Record<string, number> = {};
+      funds.forEach(fund => {
+        targetWeights[fund.id] = (fund.weightage || 0) / targetWeightSum;
+      });
+
+      const initialUnits: Record<string, number> = {};
+      const initialInvestments: Record<string, number> = {};
+
+      const findNavAroundDate = (series: { date: string; nav: number }[], dateISO: string) => {
+        const before = getLatestNAVBeforeDate(series, dateISO);
+        if (before) return before;
+        const sorted = [...series].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        return sorted.find(point => new Date(point.date) >= new Date(dateISO)) || null;
+      };
+
+      funds.forEach(fund => {
+        const navSeries = navMap[fund.id];
+        if (!navSeries || navSeries.length === 0) {
           throw new Error(`No NAV data found for fund: ${fund.name}`);
         }
 
-        let initialUnits = initialHoldings[fund.id] || 0;
-        let initialInvested = initialInvestmentValues[fund.id] || 0;
-
-        // If using value-based input, calculate units from portfolio value
-        if (inputMethod === 'value' && initialPortfolioValue > 0) {
-          // Get NAV at start date to calculate initial units
-          const startNavEntry = getNextAvailableNAV(navData.navData, startDate);
-          if (!startNavEntry) {
-            throw new Error(`No NAV data available for ${fund.name} at start date`);
-          }
-
-          // Distribute portfolio value by weightage
-          const fundValue = initialPortfolioValue * (fund.weightage / 100);
-          initialUnits = fundValue / startNavEntry.nav;
-          
-          // If initial investment not provided, use calculated value for XIRR
-          if (initialInvested === 0) {
-            initialInvested = fundValue;
-          }
-        } else if (initialUnits > 0 && initialInvested === 0) {
-          // If units provided but no initial investment, estimate from NAV at start date
-          const startNavEntry = getNextAvailableNAV(navData.navData, startDate);
-          if (startNavEntry) {
-            initialInvested = initialUnits * startNavEntry.nav;
-          }
+        const navAtStart = findNavAroundDate(navSeries, startDate);
+        if (!navAtStart) {
+          throw new Error(`No NAV data available near ${startDate} for ${fund.name}`);
         }
 
-        return {
-          fundId: fund.id,
-          fundName: fund.name,
-          weightage: fund.weightage,
-          navData: navData.navData,
-          currentUnits: initialUnits,
-          initialUnits,
-          initialInvested,
-          totalWithdrawn: 0,
-          cashflows: [] as Array<{ date: Date; amount: number }>,
-          withdrawalHistory: [] as Array<{ date: string; amount: number; units: number; nav: number }>,
-        };
+        if (inputMethod === 'value') {
+          const fundValue = initialPortfolioValue * (fund.weightage / 100);
+          const units = navAtStart.nav > 0 ? fundValue / navAtStart.nav : 0;
+          initialUnits[fund.id] = units;
+
+          const manualInvestment = initialInvestmentValues[fund.id] || 0;
+          initialInvestments[fund.id] = manualInvestment > 0 ? manualInvestment : fundValue;
+        } else {
+          const units = initialHoldings[fund.id] || 0;
+          initialUnits[fund.id] = units;
+
+          const manualInvestment = initialInvestmentValues[fund.id] || 0;
+          initialInvestments[fund.id] =
+            manualInvestment > 0 ? manualInvestment : units * navAtStart.nav;
+        }
       });
 
-      // Calculate initial total investment value (for XIRR base)
-      const initialTotalInvestment = Object.values(initialInvestmentValues).reduce((sum, val) => sum + (val || 0), 0);
-      
-      // If initial investment values are not provided, use calculated values
-      let estimatedInitialInvestment = initialTotalInvestment;
+      let estimatedInitialInvestment = Object.values(initialInvestmentValues).reduce(
+        (sum, val) => sum + (val || 0),
+        0
+      );
       if (estimatedInitialInvestment === 0) {
-        // Use the sum of all fund initial investments (already calculated)
-        estimatedInitialInvestment = fundStates.reduce((sum, state) => sum + state.initialInvested, 0);
+        estimatedInitialInvestment = Object.values(initialInvestments).reduce(
+          (sum, val) => sum + (val || 0),
+          0
+        );
       }
 
-      // Track overall cashflows for XIRR (initial investment as negative)
-      const overallCashflows: Array<{ date: Date; amount: number }> = [];
-      
-      // Add initial investment as negative cashflow (at start date)
-      if (estimatedInitialInvestment > 0) {
-        overallCashflows.push({ date: new Date(startDate), amount: -estimatedInitialInvestment });
-      }
+      const simulation = simulateSWP({
+        startDate,
+        withdrawalAmount,
+        withdrawalDates: plannedWithdrawalDates,
+        strategy,
+        targetWeights,
+        initialUnits,
+        navSeriesByFund: navMap,
+        riskOrder: strategy === 'RISK_BUCKET' ? [...DEFAULT_RISK_ORDER] : undefined,
+        fundRisk: strategy === 'RISK_BUCKET' ? fundRisk : undefined,
+      });
 
-      // Process each withdrawal date
-      const withdrawalDatesProcessed: Array<{ date: string; actualDate: string; amount: number }> = [];
+      const withdrawalDatesProcessed = simulation.timeline
+        .filter(entry => entry.action?.type === 'WITHDRAWAL')
+        .map(entry => {
+          const perFund = entry.action?.perFund ?? [];
+          const actualDate =
+            perFund.length > 0
+              ? perFund.reduce(
+                  (max, sale) => (sale.navDate > max ? sale.navDate : max),
+                  perFund[0].navDate
+                )
+              : entry.date;
+
+          return {
+            date: entry.date,
+            actualDate,
+            amount: entry.action?.amount || 0,
+          };
+        });
+
       const chartDataPoints: Array<{
         date: string;
         invested: number;
@@ -247,253 +328,93 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         [key: string]: any;
       }> = [];
 
-      let totalWithdrawn = 0;
-      let stoppedEarly = false;
-
-      for (const plannedDate of plannedWithdrawalDates) {
-        // Check if we've exhausted NAV data
-        const hasAvailableNAV = fundStates.some(state => {
-          const navEntry = getNextAvailableNAV(state.navData, plannedDate);
-          return navEntry !== null;
-        });
-
-        if (!hasAvailableNAV) {
-          console.log(`No NAV data available after ${plannedDate}, stopping SWP`);
-          stoppedEarly = true;
-          break;
+      let cumulativeWithdrawn = 0;
+      simulation.timeline.forEach(entry => {
+        if (entry.action?.type === 'WITHDRAWAL') {
+          cumulativeWithdrawn = roundTo2(
+            cumulativeWithdrawn + (entry.action.amount || 0)
+          );
         }
 
-        // Get actual withdrawal date (next available NAV date)
-        let actualWithdrawalDate = plannedDate;
-        let totalBucketValue = 0;
-        let totalRemainingUnits = 0;
-
-        // Calculate current bucket value before withdrawal
-        fundStates.forEach(state => {
-          const navEntry = getNextAvailableNAV(state.navData, plannedDate);
-          if (navEntry) {
-            actualWithdrawalDate = navEntry.date > actualWithdrawalDate ? navEntry.date : actualWithdrawalDate;
-            const fundValue = state.currentUnits * navEntry.nav;
-            totalBucketValue += fundValue;
-          }
-        });
-
-        // Check if we have enough value to withdraw
-        if (totalBucketValue < withdrawalAmount) {
-          console.log(`Insufficient portfolio value (${totalBucketValue}) for withdrawal (${withdrawalAmount}) on ${actualWithdrawalDate}`);
-          stoppedEarly = true;
-          break;
-        }
-
-        let totalUnitsSold = 0;
-        let remainingWithdrawal = withdrawalAmount;
-
-        if (withdrawalMode === 'Bucket') {
-          // Distribute withdrawal across all funds by weightage
-          fundStates.forEach(state => {
-            const navEntry = getNextAvailableNAV(state.navData, plannedDate);
-            if (!navEntry) return;
-
-            const withdrawalShare = withdrawalAmount * (state.weightage / 100);
-            const navOnDate = navEntry.nav;
-
-            // Calculate how many units can be sold from this fund
-            const maxUnitsAvailable = state.currentUnits;
-            const unitsToSellForShare = withdrawalShare / navOnDate;
-            const unitsToSell = Math.min(unitsToSellForShare, maxUnitsAvailable);
-
-            if (unitsToSell > 0 && state.currentUnits >= unitsToSell) {
-              const actualWithdrawnAmount = unitsToSell * navOnDate;
-              state.currentUnits = Math.max(0, state.currentUnits - unitsToSell);
-              state.totalWithdrawn += actualWithdrawnAmount;
-              totalUnitsSold += unitsToSell;
-              remainingWithdrawal -= actualWithdrawnAmount;
-
-              state.withdrawalHistory.push({
-                date: navEntry.date,
-                amount: actualWithdrawnAmount,
-                units: unitsToSell,
-                nav: navOnDate,
-              });
-
-              state.cashflows.push({
-                date: new Date(navEntry.date),
-                amount: actualWithdrawnAmount,
-              });
-
-              overallCashflows.push({
-                date: new Date(navEntry.date),
-                amount: actualWithdrawnAmount,
-              });
-            }
-          });
-
-          // If there's remaining withdrawal due to insufficient units, try to distribute proportionally
-          if (remainingWithdrawal > 0.01 && totalUnitsSold > 0) {
-            // Distribute remaining proportionally across funds that still have units
-            fundStates.forEach(state => {
-              if (remainingWithdrawal <= 0.01 || state.currentUnits <= 0) return;
-
-              const navEntry = getNextAvailableNAV(state.navData, plannedDate);
-              if (!navEntry) return;
-
-              const proportion = state.currentUnits / fundStates.reduce((sum, s) => {
-                const sNav = getNextAvailableNAV(s.navData, plannedDate);
-                return sum + (sNav && s.currentUnits > 0 ? s.currentUnits : 0);
-              }, 0);
-
-              const additionalWithdrawal = remainingWithdrawal * proportion;
-              const additionalUnits = Math.min(additionalWithdrawal / navEntry.nav, state.currentUnits);
-
-              if (additionalUnits > 0) {
-                const actualWithdrawnAmount = additionalUnits * navEntry.nav;
-                state.currentUnits = Math.max(0, state.currentUnits - additionalUnits);
-                state.totalWithdrawn += actualWithdrawnAmount;
-                remainingWithdrawal -= actualWithdrawnAmount;
-
-                const existingHistory = state.withdrawalHistory.find(w => w.date === navEntry.date);
-                if (existingHistory) {
-                  existingHistory.amount += actualWithdrawnAmount;
-                  existingHistory.units += additionalUnits;
-                } else {
-                  state.withdrawalHistory.push({
-                    date: navEntry.date,
-                    amount: actualWithdrawnAmount,
-                    units: additionalUnits,
-                    nav: navEntry.nav,
-                  });
-                }
-
-                state.cashflows.push({
-                  date: new Date(navEntry.date),
-                  amount: actualWithdrawnAmount,
-                });
-
-                overallCashflows.push({
-                  date: new Date(navEntry.date),
-                  amount: actualWithdrawnAmount,
-                });
-              }
-            });
-          }
-
-        } else {
-          // Fund Mode: Withdraw only from selected fund
-          const selectedState = fundStates.find(s => s.fundId === selectedFundForWithdrawal);
-          if (!selectedState) {
-            throw new Error('Selected fund not found');
-          }
-
-          const navEntry = getNextAvailableNAV(selectedState.navData, plannedDate);
-          if (!navEntry) {
-            console.log(`No NAV data for selected fund on ${plannedDate}`);
-            continue;
-          }
-
-          const navOnDate = navEntry.nav;
-          const unitsToSell = Math.min(withdrawalAmount / navOnDate, selectedState.currentUnits);
-
-          if (unitsToSell > 0 && selectedState.currentUnits >= unitsToSell) {
-            const actualWithdrawnAmount = unitsToSell * navOnDate;
-            selectedState.currentUnits = Math.max(0, selectedState.currentUnits - unitsToSell);
-            selectedState.totalWithdrawn += actualWithdrawnAmount;
-            totalUnitsSold = unitsToSell;
-            remainingWithdrawal = withdrawalAmount - actualWithdrawnAmount;
-
-            selectedState.withdrawalHistory.push({
-              date: navEntry.date,
-              amount: actualWithdrawnAmount,
-              units: unitsToSell,
-              nav: navOnDate,
-            });
-
-            selectedState.cashflows.push({
-              date: new Date(navEntry.date),
-              amount: actualWithdrawnAmount,
-            });
-
-            overallCashflows.push({
-              date: new Date(navEntry.date),
-              amount: actualWithdrawnAmount,
-            });
-
-            actualWithdrawalDate = navEntry.date;
-          } else {
-            console.log(`Insufficient units in selected fund for withdrawal on ${plannedDate}`);
-            stoppedEarly = true;
-            break;
-          }
-        }
-
-        const actualWithdrawnAmount = withdrawalAmount - remainingWithdrawal;
-        totalWithdrawn += actualWithdrawnAmount;
-        withdrawalDatesProcessed.push({
-          date: plannedDate,
-          actualDate: actualWithdrawalDate,
-          amount: actualWithdrawnAmount,
-        });
-
-        // Calculate portfolio value after this withdrawal for chart
-        let currentBucketValue = 0;
-        const chartPoint: any = {
-          date: actualWithdrawalDate,
+        const point: {
+          date: string;
+          invested: number;
+          value: number;
+          withdrawn: number;
+          [key: string]: any;
+        } = {
+          date: entry.date,
           invested: estimatedInitialInvestment,
+          withdrawn: cumulativeWithdrawn,
           value: 0,
-          withdrawn: totalWithdrawn,
         };
 
-        fundStates.forEach(state => {
-          const navEntry = getLatestNAVBeforeDate(state.navData, actualWithdrawalDate);
-          if (navEntry) {
-            const fundValue = state.currentUnits * navEntry.nav;
-            currentBucketValue += fundValue;
-            chartPoint[state.fundName] = fundValue;
-          }
+        funds.forEach(fund => {
+          const navSeries = navMap[fund.id];
+          const navPoint = navSeries
+            ? getLatestNAVBeforeDate(navSeries, entry.date) ||
+              navSeries[navSeries.length - 1]
+            : null;
+          const navValue = navPoint?.nav ?? 0;
+          const unitsAtDate = entry.totalUnits[fund.id] || 0;
+          const fundValue = unitsAtDate * navValue;
+          point[fund.name] = fundValue;
+          point.value += fundValue;
         });
 
-        chartPoint.value = currentBucketValue;
-        chartDataPoints.push(chartPoint);
-      }
+        chartDataPoints.push(point);
+      });
 
-      // Calculate final values and metrics
-      const finalNavDate = endDate;
-      let finalBucketValue = 0;
-      const fundResults = fundStates.map(state => {
-        const finalNavEntry = getLatestNAVBeforeDate(state.navData, finalNavDate);
-        const finalNav = finalNavEntry?.nav || 0;
-        const currentValue = state.currentUnits * finalNav;
-        finalBucketValue += currentValue;
+      chartDataPoints.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
-        // Calculate individual fund cashflows (initial investment as negative)
-        const fundCashflows = [...state.cashflows];
-        if (state.initialInvested > 0) {
-          fundCashflows.unshift({ date: new Date(startDate), amount: -state.initialInvested });
-        } else {
-          // Estimate from initial NAV
-          const startNavEntry = getNextAvailableNAV(state.navData, startDate);
-          if (startNavEntry && state.initialUnits > 0) {
-            const estimatedInvestment = state.initialUnits * startNavEntry.nav;
-            fundCashflows.unshift({ date: new Date(startDate), amount: -estimatedInvestment });
-          }
+      const years = getYearsBetween(startDate, endDate);
+
+      const fundResults = funds.map(fund => {
+        const simFund = simulation.fundResults.find(f => f.fundId === fund.id);
+        const remainingUnits = simFund?.remainingUnits ?? 0;
+        const totalWithdrawnFund = simFund?.totalWithdrawn ?? 0;
+        const navSeries = navMap[fund.id];
+        const finalNavEntry =
+          navSeries && navSeries.length > 0
+            ? getLatestNAVBeforeDate(navSeries, endDate) ||
+              navSeries[navSeries.length - 1]
+            : null;
+        const finalNav = finalNavEntry?.nav ?? 0;
+        const currentValue = remainingUnits * finalNav;
+
+        const initialInvested = initialInvestments[fund.id] || 0;
+
+        const fundCashflows = [
+          { date: new Date(startDate), amount: -initialInvested },
+          ...(simulation.cashflows.perFund[fund.id] || []).map(cf => ({
+            date: new Date(cf.date),
+            amount: cf.amount,
+          })),
+        ];
+
+        if (currentValue > 0) {
+          fundCashflows.push({ date: new Date(endDate), amount: currentValue });
         }
 
-        const years = getYearsBetween(startDate, endDate);
         const fundXIRR = fundCashflows.length > 1 ? calculateXIRR(fundCashflows) : 0;
-        const fundCAGR = years > 0 && state.initialInvested > 0
-          ? calculateCAGR(state.initialInvested, currentValue + state.totalWithdrawn, years)
-          : 0;
-
-        const profit = (currentValue + state.totalWithdrawn) - (state.initialInvested || (state.initialUnits * (getNextAvailableNAV(state.navData, startDate)?.nav || 0)));
-        const profitPercentage = state.initialInvested > 0 ? (profit / state.initialInvested) * 100 : 0;
+        const fundCAGR =
+          years > 0 && initialInvested > 0
+            ? calculateCAGR(initialInvested, currentValue + totalWithdrawnFund, years)
+            : 0;
+        const profit = currentValue + totalWithdrawnFund - initialInvested;
+        const profitPercentage =
+          initialInvested > 0 ? (profit / initialInvested) * 100 : 0;
 
         return {
-          fundId: state.fundId,
-          fundName: state.fundName,
-          weightage: state.weightage,
-          initialInvested: state.initialInvested || (state.initialUnits * (getNextAvailableNAV(state.navData, startDate)?.nav || 0)),
-          initialUnits: state.initialUnits,
-          totalWithdrawn: state.totalWithdrawn,
-          remainingUnits: parseFloat(state.currentUnits.toFixed(4)),
+          fundId: fund.id,
+          fundName: fund.name,
+          weightage: fund.weightage,
+          initialInvested,
+          initialUnits: initialUnits[fund.id] || 0,
+          totalWithdrawn: totalWithdrawnFund,
+          remainingUnits: parseFloat(remainingUnits.toFixed(4)),
           currentValue,
           profit,
           profitPercentage,
@@ -502,58 +423,41 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         };
       });
 
-      // Calculate overall metrics
-      const years = getYearsBetween(startDate, endDate);
-      const overallCAGR = years > 0 && estimatedInitialInvestment > 0
-        ? calculateCAGR(estimatedInitialInvestment, finalBucketValue + totalWithdrawn, years)
-        : 0;
-      const overallXIRR = overallCashflows.length > 1 ? calculateXIRR(overallCashflows) : 0;
+      const finalBucketValue = fundResults.reduce(
+        (sum, fund) => sum + fund.currentValue,
+        0
+      );
 
-      const totalProfit = (finalBucketValue + totalWithdrawn) - estimatedInitialInvestment;
-      const profitPercentage = estimatedInitialInvestment > 0 ? (totalProfit / estimatedInitialInvestment) * 100 : 0;
+      const totalWithdrawn = simulation.totals.withdrawn;
+      const totalProfit =
+        finalBucketValue + totalWithdrawn - estimatedInitialInvestment;
+      const profitPercentage =
+        estimatedInitialInvestment > 0
+          ? (totalProfit / estimatedInitialInvestment) * 100
+          : 0;
 
-      // Add initial point to chart
-      if (chartDataPoints.length > 0) {
-        const initialPoint: any = {
-          date: startDate,
-          invested: estimatedInitialInvestment,
-          value: estimatedInitialInvestment,
-          withdrawn: 0,
-        };
+      const overallCashflows = [
+        { date: new Date(startDate), amount: -estimatedInitialInvestment },
+        ...simulation.cashflows.overall.map(cf => ({
+          date: new Date(cf.date),
+          amount: cf.amount,
+        })),
+      ];
 
-        fundStates.forEach(state => {
-          const navEntry = getNextAvailableNAV(state.navData, startDate);
-          if (navEntry) {
-            initialPoint[state.fundName] = state.initialUnits * navEntry.nav;
-          }
-        });
-
-        chartDataPoints.unshift(initialPoint);
+      if (finalBucketValue > 0) {
+        overallCashflows.push({ date: new Date(endDate), amount: finalBucketValue });
       }
 
-      // Add final point to chart
-      const finalPoint: any = {
-        date: finalNavDate,
-        invested: estimatedInitialInvestment,
-        value: finalBucketValue,
-        withdrawn: totalWithdrawn,
-      };
+      const overallXIRR =
+        overallCashflows.length > 1 ? calculateXIRR(overallCashflows) : 0;
+      const overallCAGR =
+        years > 0 && estimatedInitialInvestment > 0
+          ? calculateCAGR(estimatedInitialInvestment, finalBucketValue + totalWithdrawn, years)
+          : 0;
 
-      fundStates.forEach(state => {
-        const navEntry = getLatestNAVBeforeDate(state.navData, finalNavDate);
-        if (navEntry) {
-          finalPoint[state.fundName] = state.currentUnits * navEntry.nav;
-        }
-      });
-
-      chartDataPoints.push(finalPoint);
-
-      // Sort chart data by date
-      chartDataPoints.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    setResult({
+      setResult({
         totalInvested: estimatedInitialInvestment,
-      totalWithdrawn,
+        totalWithdrawn,
         currentValue: finalBucketValue,
         profit: totalProfit,
         profitPercentage,
@@ -640,35 +544,18 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           )}
 
           <div>
-            <Label htmlFor="withdrawal-mode">Withdrawal Mode</Label>
-            <Select value={withdrawalMode} onValueChange={(value: 'Bucket' | 'Fund') => setWithdrawalMode(value)}>
+            <Label htmlFor="strategy">Withdrawal Strategy</Label>
+            <Select value={strategy} onValueChange={(value) => setStrategy(value as SWPStrategy)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Bucket">Bucket Mode (Distribute by Weightage)</SelectItem>
-                <SelectItem value="Fund">Fund Mode (Single Fund)</SelectItem>
+                <SelectItem value="PROPORTIONAL">Proportional (Sell by target weights)</SelectItem>
+                <SelectItem value="OVERWEIGHT_FIRST">Overweight First (Trim profits first)</SelectItem>
+                <SelectItem value="RISK_BUCKET">Risk Bucket (Low risk to high risk)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {withdrawalMode === 'Fund' && (
-          <div>
-              <Label htmlFor="selected-fund">Select Fund for Withdrawal</Label>
-              <Select value={selectedFundForWithdrawal} onValueChange={setSelectedFundForWithdrawal}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a fund" />
-                </SelectTrigger>
-                <SelectContent>
-                  {funds.map(fund => (
-                    <SelectItem key={fund.id} value={fund.id}>
-                      {fund.name} ({fund.weightage}%)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-                    </div>
-                  )}
                 </div>
 
         {/* Initial Holdings Section */}
@@ -815,6 +702,44 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
             </>
           )}
         </div>
+
+        {strategy === 'RISK_BUCKET' && (
+          <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <Label className="text-base font-semibold block mb-2">Risk Bucket Configuration</Label>
+            <p className="text-xs sm:text-sm text-amber-900 mb-4">
+              Withdrawals will prioritise lower-risk buckets first in this order:&nbsp;
+              <span className="font-semibold">
+                {DEFAULT_RISK_ORDER.map(bucket => RISK_BUCKET_LABELS[bucket]).join(' → ')}
+              </span>
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {funds.map(fund => (
+                <div key={fund.id}>
+                  <Label htmlFor={`risk-bucket-${fund.id}`} className="text-xs font-medium text-amber-900">
+                    {fund.name} — Risk Bucket
+                  </Label>
+                  <Select
+                    value={fundRisk[fund.id]}
+                    onValueChange={(value) =>
+                      setFundRisk(prev => ({ ...prev, [fund.id]: value }))
+                    }
+                  >
+                    <SelectTrigger id={`risk-bucket-${fund.id}`}>
+                      <SelectValue placeholder="Select risk bucket" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_RISK_ORDER.map(bucket => (
+                        <SelectItem key={bucket} value={bucket}>
+                          {RISK_BUCKET_LABELS[bucket]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Button
           onClick={calculateSWP}
