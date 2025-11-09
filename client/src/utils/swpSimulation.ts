@@ -84,6 +84,8 @@ const cloneUnits = (units: Record<string, number>) => {
 
 const round2 = (value: number) =>
   Math.round((value + Number.EPSILON) * 100) / 100;
+const roundUnits = (value: number) =>
+  Math.round((value + Number.EPSILON) * 1_000_000) / 1_000_000;
 
 function ensureAscending(series: NavPoint[]): NavPoint[] {
   return [...series].sort(
@@ -143,12 +145,40 @@ function withdrawProportional(
   const sales: FundWithdrawal[] = [];
   let remaining = withdrawalAmount;
 
-  for (const [fundId, weight] of Object.entries(targetWeights)) {
-    if (remaining <= 0) break;
+  const activeFunds = Object.keys(targetWeights).filter(
+    (fundId) => (units[fundId] || 0) > 0
+  );
+
+  const weightSum = activeFunds.reduce(
+    (sum, fundId) => sum + (targetWeights[fundId] || 0),
+    0
+  );
+
+  const normalizedWeights: Record<string, number> = {};
+  if (weightSum > 0) {
+    for (const fundId of activeFunds) {
+      normalizedWeights[fundId] = (targetWeights[fundId] || 0) / weightSum;
+    }
+  } else if (activeFunds.length > 0) {
+    const equalWeight = 1 / activeFunds.length;
+    for (const fundId of activeFunds) {
+      normalizedWeights[fundId] = equalWeight;
+    }
+  }
+
+  const fundsUsedInPrimaryPass: string[] = [];
+
+  for (const fundId of activeFunds) {
+    if (remaining <= 0.005) break;
+    const weight = normalizedWeights[fundId] ?? 0;
+    if (weight <= 0) continue;
+
     const series = navSeriesByFund[fundId];
     if (!series) continue;
     const navPoint = navOnOrBeforeDate(series, asOfDate);
     if (!navPoint) continue;
+
+    fundsUsedInPrimaryPass.push(fundId);
 
     const desired = withdrawalAmount * weight;
     const maxAmount = (units[fundId] || 0) * navPoint.nav;
@@ -156,7 +186,7 @@ function withdrawProportional(
     const unitsToSell = navPoint.nav > 0 ? amount / navPoint.nav : 0;
 
     if (unitsToSell > 0) {
-      units[fundId] = round2(Math.max(0, (units[fundId] || 0) - unitsToSell));
+      units[fundId] = roundUnits(Math.max(0, (units[fundId] || 0) - unitsToSell));
       sales.push({
         fundId,
         unitsSold: unitsToSell,
@@ -171,7 +201,10 @@ function withdrawProportional(
   if (remaining > 0.005) {
     const values: Record<string, number> = {};
     let valueSum = 0;
-    for (const fundId of Object.keys(targetWeights)) {
+    const candidateFunds =
+      fundsUsedInPrimaryPass.length > 0 ? fundsUsedInPrimaryPass : activeFunds;
+
+    for (const fundId of candidateFunds) {
       const series = navSeriesByFund[fundId];
       if (!series) continue;
       const navPoint = navOnOrBeforeDate(series, asOfDate);
@@ -196,7 +229,7 @@ function withdrawProportional(
         const unitsToSell = navPoint.nav > 0 ? amount / navPoint.nav : 0;
 
         if (unitsToSell > 0) {
-          units[fundId] = round2(Math.max(0, (units[fundId] || 0) - unitsToSell));
+          units[fundId] = roundUnits(Math.max(0, (units[fundId] || 0) - unitsToSell));
           sales.push({
             fundId,
             unitsSold: unitsToSell,
@@ -258,7 +291,7 @@ function withdrawOverweightFirst(
     const unitsToSell = navPoint.nav > 0 ? amount / navPoint.nav : 0;
 
     if (unitsToSell > 0) {
-      units[fundId] = round2(Math.max(0, (units[fundId] || 0) - unitsToSell));
+      units[fundId] = roundUnits(Math.max(0, (units[fundId] || 0) - unitsToSell));
       sales.push({
         fundId,
         unitsSold: unitsToSell,
@@ -285,7 +318,7 @@ function withdrawOverweightFirst(
       const unitsToSell = navPoint.nav > 0 ? amount / navPoint.nav : 0;
 
       if (unitsToSell > 0) {
-        units[fundId] = round2(Math.max(0, (units[fundId] || 0) - unitsToSell));
+        units[fundId] = roundUnits(Math.max(0, (units[fundId] || 0) - unitsToSell));
         sales.push({
           fundId,
           unitsSold: unitsToSell,
@@ -351,7 +384,7 @@ function withdrawRiskBucket(
       const unitsToSell = navPoint.nav > 0 ? amount / navPoint.nav : 0;
 
       if (unitsToSell > 0) {
-        units[fundId] = round2(Math.max(0, (units[fundId] || 0) - unitsToSell));
+        units[fundId] = roundUnits(Math.max(0, (units[fundId] || 0) - unitsToSell));
         sales.push({
           fundId,
           unitsSold: unitsToSell,
@@ -520,7 +553,7 @@ export function simulateSWP(input: SWPSimulationInput): SWPSimulationResult {
   const fundResults: FundResult[] = Object.keys(initialUnits).map((fundId) => ({
     fundId,
     totalWithdrawn: round2(perFundWithdrawn[fundId] || 0),
-    remainingUnits: round2(units[fundId] || 0),
+    remainingUnits: roundUnits(units[fundId] || 0),
     sales: perFundSales[fundId],
   }));
 
