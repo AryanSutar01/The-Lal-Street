@@ -39,12 +39,19 @@ import {
   SWPStrategy,
   TimelineEntry,
 } from '../../utils/swpSimulation';
+import {
+  computeFundAnnualizedVolatility,
+  computeFundCAGR,
+  computeWeightedAverage,
+} from '../../utils/portfolioStats';
 
 interface SWPCalculatorProps {
   funds: SelectedFund[];
 }
 
 type Frequency = 'Monthly' | 'Quarterly' | 'Custom';
+
+type InsightMode = 'CORPUS_TO_WITHDRAWAL' | 'WITHDRAWAL_TO_CORPUS';
 
 interface ChartPoint {
   date: string;
@@ -91,6 +98,18 @@ interface SWPCalculationResult {
   chartData: ChartPoint[];
   fundSummaries: FundSummary[];
   tableRows: TableRowData[];
+}
+
+interface SWPInsights {
+  portfolioCAGR: number | null;
+  portfolioVolatility: number | null;
+  swrAnnualPercent: number | null;
+  swrMonthlyPercent: number | null;
+  riskFactor: number;
+  safeMonthlyWithdrawal: number | null;
+  requiredCorpusIndefinite: number | null;
+  requiredCorpusFixedHorizon: number | null;
+  adjustedReturnPercent: number | null;
 }
 
 const DEFAULT_RISK_ORDER = [
@@ -161,8 +180,14 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
   const [fundRisk, setFundRisk] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [showTable, setShowTable] = useState<boolean>(false);
+  const [insightMode, setInsightMode] =
+    useState<InsightMode>('CORPUS_TO_WITHDRAWAL');
+  const [desiredWithdrawal, setDesiredWithdrawal] = useState<number>(0);
+  const [durationYears, setDurationYears] = useState<number>(0);
+  const [riskFactor, setRiskFactor] = useState<number>(3);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [insights, setInsights] = useState<SWPInsights | null>(null);
   const [result, setResult] = useState<SWPCalculationResult | null>(null);
 
   useEffect(() => {
@@ -205,6 +230,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setInsights(null);
 
     try {
       if (!purchaseDate) {
@@ -273,6 +299,72 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         targetWeights[fund.id] = fund.weightage / totalWeight;
       });
 
+      const fundCagrs: Record<string, number | null> = {};
+      const fundVols: Record<string, number | null> = {};
+      funds.forEach((fund) => {
+        const series = navMap[fund.id];
+        fundCagrs[fund.id] = computeFundCAGR(series);
+        fundVols[fund.id] = computeFundAnnualizedVolatility(series);
+      });
+
+      const portfolioCAGR = computeWeightedAverage(fundCagrs, targetWeights);
+      const portfolioVolatility = computeWeightedAverage(fundVols, targetWeights);
+      const effectiveRiskFactor = Math.max(0.1, riskFactor);
+
+      const swrAnnualPercent =
+        portfolioCAGR !== null ? portfolioCAGR / effectiveRiskFactor : null;
+      const swrMonthlyPercent =
+        swrAnnualPercent !== null ? swrAnnualPercent / 12 : null;
+      const swrMonthlyRate =
+        swrMonthlyPercent !== null ? swrMonthlyPercent / 100 : null;
+
+      const safeMonthlyWithdrawal =
+        swrMonthlyRate && swrMonthlyRate > 0
+          ? totalInvestment * swrMonthlyRate
+          : null;
+
+      const desiredMonthly =
+        insightMode === 'WITHDRAWAL_TO_CORPUS' && desiredWithdrawal > 0
+          ? desiredWithdrawal
+          : null;
+
+      const requiredCorpusIndefinite =
+        desiredMonthly && swrMonthlyRate && swrMonthlyRate > 0
+          ? desiredMonthly / swrMonthlyRate
+          : null;
+
+      const adjustedReturnPercent =
+        portfolioCAGR !== null
+          ? Math.max(0, portfolioCAGR - (portfolioVolatility ?? 0))
+          : null;
+      const adjustedReturnRate =
+        adjustedReturnPercent !== null ? adjustedReturnPercent / 100 : null;
+
+      let requiredCorpusFixedHorizon: number | null = null;
+      if (desiredMonthly && durationYears > 0) {
+        const annualWithdrawal = desiredMonthly * 12;
+        if (adjustedReturnRate && adjustedReturnRate > 0) {
+          requiredCorpusFixedHorizon =
+            annualWithdrawal *
+            (1 - Math.pow(1 + adjustedReturnRate, -durationYears)) /
+            adjustedReturnRate;
+        } else {
+          requiredCorpusFixedHorizon = annualWithdrawal * durationYears;
+        }
+      }
+
+      setInsights({
+        portfolioCAGR,
+        portfolioVolatility,
+        swrAnnualPercent,
+        swrMonthlyPercent,
+        riskFactor: effectiveRiskFactor,
+        safeMonthlyWithdrawal,
+        requiredCorpusIndefinite,
+        requiredCorpusFixedHorizon,
+        adjustedReturnPercent,
+      });
+
       const initialUnits: Record<string, number> = {};
       const navAtPurchase: Record<string, number> = {};
 
@@ -316,8 +408,6 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       const withdrawalEntries = simulation.timeline.filter(
         (entry) => entry.action?.type === 'WITHDRAWAL'
       );
-
-      const lastEntry = simulation.timeline[simulation.timeline.length - 1];
 
       const fundSummaries: FundSummary[] = funds.map((fund) => {
         const fundResult = simulation.fundResults.find((f) => f.fundId === fund.id);
@@ -456,6 +546,33 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       <Card className="p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-4">SWP Calculator</h2>
 
+        <div className="mb-6">
+          <Label className="text-sm font-semibold text-slate-700 mb-2 block">
+            Planning helper
+          </Label>
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            <Button
+              type="button"
+              variant={insightMode === 'CORPUS_TO_WITHDRAWAL' ? 'default' : 'outline'}
+              onClick={() => setInsightMode('CORPUS_TO_WITHDRAWAL')}
+              className="text-sm rounded-r-none"
+            >
+              I have a corpus
+            </Button>
+            <Button
+              type="button"
+              variant={insightMode === 'WITHDRAWAL_TO_CORPUS' ? 'default' : 'outline'}
+              onClick={() => setInsightMode('WITHDRAWAL_TO_CORPUS')}
+              className="text-sm rounded-l-none"
+            >
+              I have a target withdrawal
+            </Button>
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            We use historical fund performance to estimate a sustainable withdrawal rate.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="total-investment">Total Investment (₹)</Label>
@@ -514,6 +631,42 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               className="mt-1"
             />
           </div>
+          {insightMode === 'WITHDRAWAL_TO_CORPUS' && (
+            <div>
+              <Label htmlFor="desired-withdrawal">Desired Monthly Withdrawal (₹)</Label>
+              <Input
+                id="desired-withdrawal"
+                type="number"
+                min={1}
+                value={desiredWithdrawal || ''}
+                onChange={(event) =>
+                  setDesiredWithdrawal(Number(event.target.value) || 0)
+                }
+                placeholder="20000"
+                className="mt-1"
+              />
+            </div>
+          )}
+          {insightMode === 'WITHDRAWAL_TO_CORPUS' && (
+            <div>
+              <Label htmlFor="duration-years">
+                Horizon (years) <span className="text-xs text-slate-500">(optional)</span>
+              </Label>
+              <Input
+                id="duration-years"
+                type="number"
+                min={0}
+                value={durationYears || ''}
+                onChange={(event) => setDurationYears(Number(event.target.value) || 0)}
+                placeholder="15"
+                className="mt-1"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Provide a duration to estimate the corpus for a finite SWP. Leave blank for
+                indefinite withdrawals.
+              </p>
+            </div>
+          )}
           <div>
             <Label htmlFor="frequency">Withdrawal Frequency</Label>
             <Select value={frequency} onValueChange={(value: Frequency) => setFrequency(value)}>
@@ -556,6 +709,23 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           </button>
           {showAdvanced && (
             <div className="px-4 pb-4 pt-2 space-y-4">
+              <div>
+                <Label htmlFor="risk-factor">Risk factor</Label>
+                <Input
+                  id="risk-factor"
+                  type="number"
+                  min={1}
+                  step={0.1}
+                  value={riskFactor}
+                  onChange={(event) =>
+                    setRiskFactor(Math.max(0.1, Number(event.target.value) || 0))
+                  }
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Higher risk factor = more conservative withdrawal rate. Default is 3.
+                </p>
+              </div>
               <div>
                 <Label htmlFor="strategy">Withdrawal Strategy</Label>
                 <Select
@@ -636,6 +806,128 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           {isLoading ? 'Simulating...' : 'Run SWP Simulation'}
         </Button>
       </Card>
+
+      {insights && (
+        <TooltipProvider>
+          <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+              <div className="flex items-start gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Safe withdrawal insights
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Based on historical weighted returns and your selected risk factor.
+                  </p>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-slate-400 mt-1 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
+                    We compute each fund&apos;s CAGR and volatility, weight them by your
+                    allocation, and divide the combined CAGR by the chosen risk factor to
+                    estimate a sustainable withdrawal rate. If a fund lacks sufficient history
+                    you will see &quot;Not enough history&quot;.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Badge variant="outline" className="text-slate-600 border-slate-200">
+                Risk factor: {formatNumber(insights.riskFactor, 1)}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
+                  Portfolio CAGR
+                </div>
+                <div className="text-xl font-semibold text-slate-900">
+                  {insights.portfolioCAGR !== null
+                    ? `${formatNumber(insights.portfolioCAGR, 2)}%`
+                    : 'Not enough history'}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
+                  Annualized volatility
+                </div>
+                <div className="text-xl font-semibold text-slate-900">
+                  {insights.portfolioVolatility !== null
+                    ? `${formatNumber(insights.portfolioVolatility, 2)}%`
+                    : 'Not enough history'}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
+                  Safe withdrawal rate (annual)
+                </div>
+                <div className="text-xl font-semibold text-slate-900">
+                  {insights.swrAnnualPercent !== null
+                    ? `${formatNumber(insights.swrAnnualPercent, 2)}%`
+                    : 'Not enough history'}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Monthly:{' '}
+                  {insights.swrMonthlyPercent !== null
+                    ? `${formatNumber(insights.swrMonthlyPercent, 3)}%`
+                    : '—'}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
+                  Safe monthly withdrawal (from current corpus)
+                </div>
+                <div className="text-xl font-semibold text-slate-900">
+                  {insights.safeMonthlyWithdrawal !== null
+                    ? formatCurrency(insights.safeMonthlyWithdrawal)
+                    : 'Not enough history'}
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Based on total investment of {formatCurrency(totalInvestment)}.
+                </p>
+              </Card>
+
+              <Card className="border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
+                  Corpus required for target withdrawal
+                </div>
+                <div className="flex flex-col gap-1 text-slate-900 font-semibold text-sm">
+                  <span>
+                    Indefinite:{' '}
+                    {insights.requiredCorpusIndefinite !== null
+                      ? formatCurrency(insights.requiredCorpusIndefinite)
+                      : desiredWithdrawal > 0
+                      ? 'Not enough history'
+                      : 'Enter a monthly withdrawal'}
+                  </span>
+                  <span>
+                    {durationYears > 0 ? (
+                      <>
+                        {durationYears} years:{' '}
+                        {insights.requiredCorpusFixedHorizon !== null
+                          ? formatCurrency(insights.requiredCorpusFixedHorizon)
+                          : 'Not enough history'}
+                      </>
+                    ) : (
+                      'Provide a horizon to estimate finite-duration corpus.'
+                    )}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Uses adjusted return of{' '}
+                  {insights.adjustedReturnPercent !== null
+                    ? `${formatNumber(insights.adjustedReturnPercent, 2)}%`
+                    : 'Not enough history'}{' '}
+                  (CAGR minus volatility).
+                </p>
+              </Card>
+            </div>
+          </Card>
+        </TooltipProvider>
+      )}
 
       {error && (
         <Card className="p-4 bg-red-50 border border-red-200 text-red-800">
@@ -892,4 +1184,5 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
     </div>
   );
 }
+
 
