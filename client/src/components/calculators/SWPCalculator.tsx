@@ -29,7 +29,7 @@ import {
   Legend as RechartsLegend,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR } from '../../utils/financialCalculations';
