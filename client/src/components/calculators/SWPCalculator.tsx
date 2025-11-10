@@ -44,6 +44,11 @@ import {
   computeFundCAGR,
   computeWeightedAverage,
 } from '../../utils/portfolioStats';
+import {
+  Tooltip as UiTooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../ui/tooltip';
 
 interface SWPCalculatorProps {
   funds: SelectedFund[];
@@ -808,34 +813,33 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       </Card>
 
       {insights && (
-        <TooltipProvider>
-          <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
-              <div className="flex items-start gap-2">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Safe withdrawal insights
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Based on historical weighted returns and your selected risk factor.
-                  </p>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-slate-400 mt-1 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
-                    We compute each fund&apos;s CAGR and volatility, weight them by your
-                    allocation, and divide the combined CAGR by the chosen risk factor to
-                    estimate a sustainable withdrawal rate. If a fund lacks sufficient history
-                    you will see &quot;Not enough history&quot;.
-                  </TooltipContent>
-                </Tooltip>
+        <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+            <div className="flex items-start gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Safe withdrawal insights
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Based on historical weighted returns and your selected risk factor.
+                </p>
               </div>
-              <Badge variant="outline" className="text-slate-600 border-slate-200">
-                Risk factor: {formatNumber(insights.riskFactor, 1)}
-              </Badge>
+              <UiTooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-slate-400 mt-1 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
+                  We compute each fund&apos;s CAGR and volatility, weight them by your allocation,
+                  and divide the combined CAGR by the chosen risk factor to estimate a sustainable
+                  withdrawal rate. If a fund lacks sufficient history you will see &quot;Not enough
+                  history&quot;.
+                </TooltipContent>
+              </UiTooltip>
             </div>
+            <Badge variant="outline" className="text-slate-600 border-slate-200">
+              Risk factor: {formatNumber(insights.riskFactor, 1)}
+            </Badge>
+          </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
@@ -926,7 +930,6 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               </Card>
             </div>
           </Card>
-        </TooltipProvider>
       )}
 
       {error && (
