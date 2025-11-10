@@ -815,43 +815,44 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
       {insights && (
         <TooltipProvider>
-        <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
-            <div className="flex items-start gap-2">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Safe withdrawal insights
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Based on historical weighted returns and your selected risk factor.
-                </p>
+          <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+              <div className="flex items-start gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Safe withdrawal insights
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Based on historical weighted returns and your selected risk factor.
+                  </p>
+                </div>
+                <UiTooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-slate-400 mt-1 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
+                    We compute each fund&apos;s CAGR and volatility, weight them by your allocation,
+                    and divide the combined CAGR by the chosen risk factor to estimate a sustainable
+                    withdrawal rate. If a fund lacks sufficient history you will see &quot;Not enough
+                    history&quot;.
+                  </TooltipContent>
+                </UiTooltip>
               </div>
-              <UiTooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-slate-400 mt-1 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs text-xs leading-snug">
-                  We compute each fund&apos;s CAGR and volatility, weight them by your allocation,
-                  and divide the combined CAGR by the chosen risk factor to estimate a sustainable
-                  withdrawal rate. If a fund lacks sufficient history you will see &quot;Not enough
-                  history&quot;.
-                </TooltipContent>
-              </UiTooltip>
-                      </div>
-            <Badge variant="outline" className="text-slate-600 border-slate-200">
-              Risk factor: {formatNumber(insights.riskFactor, 1)}
-            </Badge>
-                  </div>
+              <Badge variant="outline" className="text-slate-600 border-slate-200">
+                Risk factor: {formatNumber(insights.riskFactor, 1)}
+              </Badge>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Portfolio CAGR
-              </div>
+                </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.portfolioCAGR !== null
                     ? `${formatNumber(insights.portfolioCAGR, 2)}%`
                     : 'Not enough history'}
-                  </div>
+                </div>
               </div>
               <div>
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
@@ -879,18 +880,18 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : '—'}
                 </div>
               </div>
-              </div>
+            </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Safe monthly withdrawal (from current corpus)
-                      </div>
+                </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.safeMonthlyWithdrawal !== null
                     ? formatCurrency(insights.safeMonthlyWithdrawal)
                     : 'Not enough history'}
-                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Based on total investment of {formatCurrency(totalInvestment)}.
                 </p>
@@ -899,7 +900,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               <Card className="border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Corpus required for target withdrawal
-              </div>
+                </div>
                 <div className="flex flex-col gap-1 text-slate-900 font-semibold text-sm">
                   <span>
                     Indefinite:{' '}
@@ -921,7 +922,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                       'Provide a horizon to estimate finite-duration corpus.'
                     )}
                   </span>
-        </div>
+                </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Uses adjusted return of{' '}
                   {insights.adjustedReturnPercent !== null
@@ -929,16 +930,16 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : 'Not enough history'}{' '}
                   (CAGR minus volatility).
                 </p>
-      </Card>
+              </Card>
             </div>
           </Card>
+        </TooltipProvider>
       )}
 
       {error && (
         <Card className="p-4 bg-red-50 border border-red-200 text-red-800">
           {error}
         </Card>
-        </TooltipProvider>
       )}
 
       {result && (
