@@ -91,6 +91,10 @@ interface TableRowData {
   fundValue: number;
   portfolioValue: number;
   totalWithdrawal: number;
+  investedValue: number;
+  profitLoss: number;
+  principalDepletedValue: number;
+  principalDepletionPercent: number;
 }
 
 interface SWPCalculationResult {
@@ -458,6 +462,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
       const initialUnits: Record<string, number> = {};
       const navAtPurchase: Record<string, number> = {};
+      const initialInvestmentByFund: Record<string, number> = {};
 
       const findNavForDate = (series: { date: string; nav: number }[], dateISO: string) => {
         const before = getLatestNAVBeforeDate(series, dateISO);
@@ -482,6 +487,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         const amountForFund = simulationTotalInvestment * (fund.weightage / totalWeight);
         const units = navPoint.nav > 0 ? amountForFund / navPoint.nav : 0;
         initialUnits[fund.id] = units;
+        initialInvestmentByFund[fund.id] = amountForFund;
       });
 
       const simulation = simulateSWP({
@@ -591,6 +597,17 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           const navDate = navPoint?.date ?? entry.date;
           const unitsLeft = entry.totalUnits[fund.id] ?? 0;
           const fundValue = round2(unitsLeft * navValue);
+          const initialNav = navAtPurchase[fund.id] ?? 0;
+          const initialInvestment = initialInvestmentByFund[fund.id] ?? 0;
+          const investedValue = round2(unitsLeft * initialNav);
+          const profitLoss = round2(fundValue - investedValue);
+          const principalDepletedValue = round2(
+            Math.max(0, initialInvestment - investedValue),
+          );
+          const principalDepletionPercent =
+            initialInvestment > 0
+              ? round2((principalDepletedValue / initialInvestment) * 100)
+              : 0;
 
           tableRows.push({
             date: entry.date,
@@ -604,6 +621,10 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
             fundValue,
             portfolioValue: entry.portfolioValue,
             totalWithdrawal: entry.action?.amount ?? 0,
+            investedValue,
+            profitLoss,
+            principalDepletedValue,
+            principalDepletionPercent,
           });
         });
       });
@@ -1296,6 +1317,11 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                       <TableHead>Units redeemed</TableHead>
                       <TableHead>Units left</TableHead>
                       <TableHead>Fund value (₹)</TableHead>
+                      <TableHead>Fund value (₹)</TableHead>
+                      <TableHead>Invested value (₹)</TableHead>
+                      <TableHead>Profit / Loss (₹)</TableHead>
+                      <TableHead>Principal withdrawn (₹)</TableHead>
+                      <TableHead>Principal withdrawn (%)</TableHead>
                       <TableHead>Portfolio value (₹)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1310,6 +1336,10 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                         <TableCell>{formatNumber(row.unitsRedeemed, 4)}</TableCell>
                         <TableCell>{formatNumber(row.unitsLeft, 4)}</TableCell>
                         <TableCell>{formatCurrency(row.fundValue)}</TableCell>
+                        <TableCell>{formatCurrency(row.investedValue)}</TableCell>
+                        <TableCell>{formatCurrency(row.profitLoss)}</TableCell>
+                        <TableCell>{formatCurrency(row.principalDepletedValue)}</TableCell>
+                        <TableCell>{formatNumber(row.principalDepletionPercent, 2)}%</TableCell>
                         <TableCell>{formatCurrency(row.portfolioValue)}</TableCell>
                       </TableRow>
                     ))}
