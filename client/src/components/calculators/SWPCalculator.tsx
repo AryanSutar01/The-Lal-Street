@@ -111,7 +111,7 @@ interface SWPInsights {
   portfolioCAGR: number | null;
   portfolioVolatility: number | null;
   swrAnnualPercent: number | null;
-  swrMonthlyPercent: number | null;
+  swrPeriodPercent: number | null;
   riskFactor: number;
   safeMonthlyWithdrawal: number | null;
   requiredCorpusIndefinite: number | null;
@@ -174,6 +174,22 @@ const deriveRiskBucket = (category: string | undefined): string => {
 
 const round2 = (value: number) =>
   Math.round((value + Number.EPSILON) * 100) / 100;
+
+const periodsPerYearFromFrequency = (
+  frequency: Frequency,
+  customDays: number,
+): number => {
+  if (frequency === 'Monthly') return 12;
+  if (frequency === 'Quarterly') return 4;
+  const days = Math.max(1, customDays || 30);
+  return Math.max(1, 365.25 / days);
+};
+
+const frequencyLabel = (frequency: Frequency, customDays: number) => {
+  if (frequency === 'Monthly') return 'monthly';
+  if (frequency === 'Quarterly') return 'per quarter';
+  return `every ${customDays} days`;
+};
 
 export function SWPCalculator({ funds }: SWPCalculatorProps) {
   const [purchaseDate, setPurchaseDate] = useState<string>('');
@@ -248,6 +264,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
     durationYears > 0
       ? autoCorpus ?? (insights?.requiredCorpusFixedHorizon ?? null)
       : null;
+  const frequencyDescriptor = frequencyLabel(frequency, customFrequencyDays);
 
   const calculateSWP = async () => {
     setIsLoading(true);
@@ -339,25 +356,26 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       const portfolioCAGR = computeWeightedAverage(fundCagrs, targetWeights);
       const portfolioVolatility = computeWeightedAverage(fundVols, targetWeights);
       const effectiveRiskFactor = Math.max(0.1, riskFactor);
+      const periodsPerYear = periodsPerYearFromFrequency(frequency, customFrequencyDays);
 
       const swrAnnualPercent =
         portfolioCAGR !== null ? portfolioCAGR / effectiveRiskFactor : null;
-      const swrMonthlyPercent =
-        swrAnnualPercent !== null ? swrAnnualPercent / 12 : null;
-      const swrMonthlyRate =
-        swrMonthlyPercent !== null ? swrMonthlyPercent / 100 : null;
+      const swrPeriodPercent =
+        swrAnnualPercent !== null ? swrAnnualPercent / periodsPerYear : null;
+      const swrPeriodRate =
+        swrPeriodPercent !== null ? swrPeriodPercent / 100 : null;
 
-      const safeMonthlyWithdrawal =
-        swrMonthlyRate && swrMonthlyRate > 0
-          ? totalInvestment * swrMonthlyRate
+      const safeWithdrawalPerPeriod =
+        swrPeriodRate && swrPeriodRate > 0
+          ? totalInvestment * swrPeriodRate
           : null;
 
-      const desiredMonthly =
+      const desiredPerPeriod =
         mode === 'TARGET' && desiredWithdrawal > 0 ? desiredWithdrawal : null;
 
       const requiredCorpusIndefinite =
-        desiredMonthly && swrMonthlyRate && swrMonthlyRate > 0
-          ? desiredMonthly / swrMonthlyRate
+        desiredPerPeriod && swrPeriodRate && swrPeriodRate > 0
+          ? desiredPerPeriod / swrPeriodRate
           : null;
 
       const adjustedReturnPercent =
@@ -368,8 +386,8 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         adjustedReturnPercent !== null ? adjustedReturnPercent / 100 : null;
 
       let requiredCorpusFixedHorizon: number | null = null;
-      if (desiredMonthly && durationYears > 0) {
-        const annualWithdrawal = desiredMonthly * 12;
+      if (desiredPerPeriod && durationYears > 0) {
+        const annualWithdrawal = desiredPerPeriod * periodsPerYear;
         if (adjustedReturnRate && adjustedReturnRate > 0) {
           requiredCorpusFixedHorizon =
             annualWithdrawal *
@@ -400,10 +418,10 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           : null;
 
       if (mode === 'CORPUS') {
-        if (safeMonthlyWithdrawal && safeMonthlyWithdrawal > 0) {
-          simulationWithdrawal = safeMonthlyWithdrawal;
-          setAutoWithdrawal(safeMonthlyWithdrawal);
-          setWithdrawalAmount(safeMonthlyWithdrawal);
+        if (safeWithdrawalPerPeriod && safeWithdrawalPerPeriod > 0) {
+          simulationWithdrawal = safeWithdrawalPerPeriod;
+          setAutoWithdrawal(safeWithdrawalPerPeriod);
+          setWithdrawalAmount(safeWithdrawalPerPeriod);
         } else {
           throw new Error(
             'Unable to calculate a safe monthly withdrawal for the selected funds. Try adjusting your fund selection or risk factor.'
@@ -430,9 +448,9 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         portfolioCAGR,
         portfolioVolatility,
         swrAnnualPercent,
-        swrMonthlyPercent,
+        swrPeriodPercent,
         riskFactor: effectiveRiskFactor,
-        safeMonthlyWithdrawal,
+        safeMonthlyWithdrawal: safeWithdrawalPerPeriod,
         requiredCorpusIndefinite,
         requiredCorpusFixedHorizon,
         adjustedReturnPercent,
@@ -670,7 +688,9 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               />
             </div>
               <div>
-                <Label htmlFor="auto-withdrawal">Safe Monthly Withdrawal (₹)</Label>
+                <Label htmlFor="auto-withdrawal">
+                  Safe Withdrawal ({frequencyDescriptor}) (₹)
+                </Label>
                 <Input
                   id="auto-withdrawal"
                   value={
@@ -684,8 +704,8 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                   className="mt-1"
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Monthly withdrawal is computed from the safe withdrawal rate after running the
-                  simulation.
+                  Withdrawal per {frequencyDescriptor} is computed from the safe withdrawal rate after
+                  running the simulation.
                 </p>
               </div>
             </div>
@@ -979,9 +999,9 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : 'Not enough history'}
                 </div>
                 <div className="text-xs text-slate-500">
-                  Monthly:{' '}
-                  {insights.swrMonthlyPercent !== null
-                    ? `${formatNumber(insights.swrMonthlyPercent, 3)}%`
+                  Per {frequencyDescriptor}:{' '}
+                  {insights.swrPeriodPercent !== null
+                    ? `${formatNumber(insights.swrPeriodPercent, 3)}%`
                     : '—'}
                 </div>
               </div>
@@ -990,7 +1010,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
-                  Safe monthly withdrawal (from current corpus)
+                  Safe withdrawal ({frequencyDescriptor}) (from corpus)
                       </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.safeMonthlyWithdrawal !== null
@@ -998,7 +1018,8 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : 'Not enough history'}
                   </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Based on total investment of {formatCurrency(totalInvestment)}.
+                  Based on total investment of {formatCurrency(totalInvestment)} and withdrawals
+                  taken {frequencyDescriptor}.
                 </p>
               </Card>
 
