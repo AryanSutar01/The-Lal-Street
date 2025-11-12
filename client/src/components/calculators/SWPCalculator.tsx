@@ -1317,7 +1317,6 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                       <TableHead>Units redeemed</TableHead>
                       <TableHead>Units left</TableHead>
                       <TableHead>Fund value (₹)</TableHead>
-                      <TableHead>Fund value (₹)</TableHead>
                       <TableHead>Invested value (₹)</TableHead>
                       <TableHead>Profit / Loss (₹)</TableHead>
                       <TableHead>Principal withdrawn (₹)</TableHead>

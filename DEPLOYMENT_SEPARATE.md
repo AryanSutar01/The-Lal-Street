@@ -382,3 +382,9 @@ Both Render and Vercel support automatic deployments:
 
 **This setup is production-ready and much simpler than serverless!** 🚀
 
+
+
+
+
+
+
