@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
   LineChart,
   Line,
@@ -57,7 +58,7 @@ interface SWPCalculatorProps {
 
 type Frequency = 'Monthly' | 'Quarterly' | 'Custom';
 
-type InsightMode = 'CORPUS_TO_WITHDRAWAL' | 'WITHDRAWAL_TO_CORPUS';
+type CalculatorMode = 'NORMAL' | 'CORPUS' | 'TARGET';
 
 interface ChartPoint {
   date: string;
@@ -186,8 +187,9 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
   const [fundRisk, setFundRisk] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [showTable, setShowTable] = useState<boolean>(false);
-  const [insightMode, setInsightMode] =
-    useState<InsightMode>('CORPUS_TO_WITHDRAWAL');
+  const [mode, setMode] = useState<CalculatorMode>('NORMAL');
+  const [autoWithdrawal, setAutoWithdrawal] = useState<number | null>(null);
+  const [autoCorpus, setAutoCorpus] = useState<number | null>(null);
   const [desiredWithdrawal, setDesiredWithdrawal] = useState<number>(0);
   const [durationYears, setDurationYears] = useState<number>(0);
   const [riskFactor, setRiskFactor] = useState<number>(3);
@@ -205,6 +207,12 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       return next;
     });
   }, [funds]);
+
+  const handleModeChange = (value: string) => {
+    const nextMode = value as CalculatorMode;
+    setMode(nextMode);
+    setError(null);
+  };
 
   const generateWithdrawalDates = (start: string, end: string): string[] => {
     const dates: string[] = [];
@@ -232,11 +240,22 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
     return dates;
   };
 
+  const displayedSafeWithdrawal =
+    autoWithdrawal ?? (insights?.safeMonthlyWithdrawal ?? null);
+  const displayedRequiredCorpus =
+    autoCorpus ?? (insights?.requiredCorpusIndefinite ?? null);
+  const displayedHorizonCorpus =
+    durationYears > 0
+      ? autoCorpus ?? (insights?.requiredCorpusFixedHorizon ?? null)
+      : null;
+
   const calculateSWP = async () => {
     setIsLoading(true);
     setError(null);
     setResult(null);
     setInsights(null);
+    setAutoWithdrawal(null);
+    setAutoCorpus(null);
 
     try {
       if (!purchaseDate) {
@@ -256,12 +275,16 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         throw new Error('End date must be after the SWP start date.');
       }
 
-      if (totalInvestment <= 0) {
+      if ((mode === 'NORMAL' || mode === 'CORPUS') && totalInvestment <= 0) {
         throw new Error('Please enter the total investment amount.');
       }
 
-      if (withdrawalAmount <= 0) {
+      if (mode === 'NORMAL' && withdrawalAmount <= 0) {
         throw new Error('Withdrawal amount must be greater than zero.');
+      }
+
+      if (mode === 'TARGET' && desiredWithdrawal <= 0) {
+        throw new Error('Please enter the desired monthly withdrawal.');
       }
 
       if (funds.length === 0) {
@@ -330,9 +353,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           : null;
 
       const desiredMonthly =
-        insightMode === 'WITHDRAWAL_TO_CORPUS' && desiredWithdrawal > 0
-          ? desiredWithdrawal
-          : null;
+        mode === 'TARGET' && desiredWithdrawal > 0 ? desiredWithdrawal : null;
 
       const requiredCorpusIndefinite =
         desiredMonthly && swrMonthlyRate && swrMonthlyRate > 0
@@ -357,6 +378,52 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                 } else {
           requiredCorpusFixedHorizon = annualWithdrawal * durationYears;
         }
+      }
+
+      let simulationTotalInvestment = totalInvestment;
+      let simulationWithdrawal =
+        mode === 'TARGET' ? desiredWithdrawal : withdrawalAmount;
+
+      const corpusForTarget =
+        mode === 'TARGET'
+          ? (() => {
+              const horizonCorpus =
+                durationYears > 0 && requiredCorpusFixedHorizon && requiredCorpusFixedHorizon > 0
+                  ? requiredCorpusFixedHorizon
+                  : null;
+              const indefiniteCorpus =
+                requiredCorpusIndefinite && requiredCorpusIndefinite > 0
+                  ? requiredCorpusIndefinite
+                  : null;
+              return horizonCorpus ?? indefiniteCorpus ?? null;
+            })()
+          : null;
+
+      if (mode === 'CORPUS') {
+        if (safeMonthlyWithdrawal && safeMonthlyWithdrawal > 0) {
+          simulationWithdrawal = safeMonthlyWithdrawal;
+          setAutoWithdrawal(safeMonthlyWithdrawal);
+          setWithdrawalAmount(safeMonthlyWithdrawal);
+        } else {
+          throw new Error(
+            'Unable to calculate a safe monthly withdrawal for the selected funds. Try adjusting your fund selection or risk factor.'
+          );
+        }
+      } else if (mode === 'TARGET') {
+        if (!corpusForTarget || corpusForTarget <= 0) {
+          throw new Error(
+            'Unable to calculate the required corpus for the target withdrawal with the current data.'
+          );
+        }
+        simulationTotalInvestment = corpusForTarget;
+        simulationWithdrawal = desiredWithdrawal;
+        setAutoCorpus(corpusForTarget);
+        setTotalInvestment(corpusForTarget);
+        setWithdrawalAmount(desiredWithdrawal);
+        } else {
+        // Normal mode: reset auto hints
+        setAutoWithdrawal(null);
+        setAutoCorpus(null);
       }
 
       setInsights({
@@ -394,14 +461,14 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         }
         navAtPurchase[fund.id] = navPoint.nav;
 
-        const amountForFund = totalInvestment * (fund.weightage / totalWeight);
+        const amountForFund = simulationTotalInvestment * (fund.weightage / totalWeight);
         const units = navPoint.nav > 0 ? amountForFund / navPoint.nav : 0;
         initialUnits[fund.id] = units;
       });
 
       const simulation = simulateSWP({
         startDate: purchaseDate,
-        withdrawalAmount,
+        withdrawalAmount: simulationWithdrawal,
         withdrawalDates: withdrawalSchedule,
         strategy,
         targetWeights,
@@ -443,7 +510,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       );
 
       const cashflows = [
-        { date: new Date(purchaseDate), amount: -totalInvestment },
+        { date: new Date(purchaseDate), amount: -simulationTotalInvestment },
         ...simulation.cashflows.overall.map((cf) => ({
           date: new Date(cf.date),
           amount: cf.amount,
@@ -472,7 +539,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
 
         const point: ChartPoint = {
           date: entry.date,
-          invested: totalInvestment,
+          invested: simulationTotalInvestment,
           withdrawn: cumulativeWithdrawn,
           portfolioValue: entry.portfolioValue,
         };
@@ -524,7 +591,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       });
     
     setResult({
-        totalInvested: totalInvestment,
+        totalInvested: simulationTotalInvestment,
         totalWithdrawn: round2(simulation.totals.withdrawn),
         finalCorpus,
         xirr: xirr ?? null,
@@ -552,46 +619,132 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
       <Card className="p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-4">SWP Calculator</h2>
 
-        <div className="mb-6">
-          <Label className="text-sm font-semibold text-slate-700 mb-2 block">
-            Planning helper
-          </Label>
-          <div className="inline-flex rounded-md shadow-sm" role="group">
-            <Button
-              type="button"
-              variant={insightMode === 'CORPUS_TO_WITHDRAWAL' ? 'default' : 'outline'}
-              onClick={() => setInsightMode('CORPUS_TO_WITHDRAWAL')}
-              className="text-sm rounded-r-none"
-            >
-              I have a corpus
-            </Button>
-            <Button
-              type="button"
-              variant={insightMode === 'WITHDRAWAL_TO_CORPUS' ? 'default' : 'outline'}
-              onClick={() => setInsightMode('WITHDRAWAL_TO_CORPUS')}
-              className="text-sm rounded-l-none"
-            >
-              I have a target withdrawal
-            </Button>
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            We use historical fund performance to estimate a sustainable withdrawal rate.
-          </p>
-        </div>
+        <Tabs value={mode} onValueChange={handleModeChange} className="space-y-4">
+          <TabsList className="grid grid-cols-1 md:grid-cols-3 bg-slate-100">
+            <TabsTrigger value="NORMAL">Normal Simulation</TabsTrigger>
+            <TabsTrigger value="CORPUS">I Have a Corpus</TabsTrigger>
+            <TabsTrigger value="TARGET">I Have a Target Withdrawal</TabsTrigger>
+          </TabsList>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TabsContent value="NORMAL">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="total-investment">Total Investment (₹)</Label>
+                <Label htmlFor="total-investment-normal">Total Investment (₹)</Label>
               <Input
-              id="total-investment"
-              type="number"
-              min={1}
-              value={totalInvestment || ''}
-              onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
-              placeholder="500000"
-              className="mt-1"
-            />
-          </div>
+                  id="total-investment-normal"
+                  type="number"
+                  min={1}
+                  value={totalInvestment || ''}
+                  onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                  placeholder="500000"
+                  className="mt-1"
+              />
+            </div>
+              <div>
+                <Label htmlFor="withdrawal-amount-normal">Monthly Withdrawal (₹)</Label>
+                <Input
+                  id="withdrawal-amount-normal"
+                  type="number"
+                  min={1}
+                  value={withdrawalAmount}
+                  onChange={(event) => setWithdrawalAmount(Number(event.target.value) || 0)}
+                  placeholder="15000"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="CORPUS">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+                <Label htmlFor="total-investment-corpus">Total Investment (₹)</Label>
+              <Input
+                  id="total-investment-corpus"
+                  type="number"
+                  min={1}
+                  value={totalInvestment || ''}
+                  onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                  placeholder="500000"
+                  className="mt-1"
+              />
+            </div>
+              <div>
+                <Label htmlFor="auto-withdrawal">Safe Monthly Withdrawal (₹)</Label>
+                <Input
+                  id="auto-withdrawal"
+                  value={
+                    displayedSafeWithdrawal !== null
+                      ? formatNumber(displayedSafeWithdrawal, 2)
+                      : ''
+                  }
+                  readOnly
+                  disabled
+                  placeholder="Run simulation to calculate"
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Monthly withdrawal is computed from the safe withdrawal rate after running the
+                  simulation.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="TARGET">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+                <Label htmlFor="desired-withdrawal-target">Desired Monthly Withdrawal (₹)</Label>
+              <Input
+                  id="desired-withdrawal-target"
+                type="number"
+                  min={1}
+                  value={desiredWithdrawal || ''}
+                  onChange={(event) => setDesiredWithdrawal(Number(event.target.value) || 0)}
+                  placeholder="20000"
+                  className="mt-1"
+              />
+            </div>
+              <div>
+                <Label htmlFor="auto-corpus">Required Corpus (₹)</Label>
+                <Input
+                  id="auto-corpus"
+                  value={
+                    displayedRequiredCorpus !== null
+                      ? formatNumber(displayedRequiredCorpus, 0)
+                      : ''
+                  }
+                  readOnly
+                  disabled
+                  placeholder="Run simulation to calculate"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <Label htmlFor="duration-years">
+                  Horizon (years) <span className="text-xs text-slate-500">(optional)</span>
+                </Label>
+                <Input
+                  id="duration-years"
+                  type="number"
+                  min={0}
+                  value={durationYears || ''}
+                  onChange={(event) => setDurationYears(Number(event.target.value) || 0)}
+                  placeholder="15"
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Provide a duration to estimate the corpus for a finite SWP. Leave blank for
+                  indefinite withdrawals.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <div>
             <Label htmlFor="purchase-date">Investment Date</Label>
             <Input
@@ -601,8 +754,8 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               onChange={(event) => setPurchaseDate(event.target.value)}
               max={getToday()}
               className="mt-1"
-              />
-            </div>
+            />
+          </div>
           <div>
             <Label htmlFor="swp-start-date">SWP Start Date</Label>
             <Input
@@ -616,63 +769,15 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           </div>
           <div>
             <Label htmlFor="end-date">End Date</Label>
-              <Input
+            <Input
               id="end-date"
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
               max={getToday()}
               className="mt-1"
-              />
-            </div>
-          <div>
-            <Label htmlFor="withdrawal-amount">Withdrawal Amount (₹)</Label>
-              <Input
-              id="withdrawal-amount"
-                type="number"
-              min={1}
-              value={withdrawalAmount}
-              onChange={(event) => setWithdrawalAmount(Number(event.target.value) || 0)}
-              placeholder="15000"
-              className="mt-1"
-              />
-            </div>
-          {insightMode === 'WITHDRAWAL_TO_CORPUS' && (
-            <div>
-              <Label htmlFor="desired-withdrawal">Desired Monthly Withdrawal (₹)</Label>
-              <Input
-                id="desired-withdrawal"
-                type="number"
-                min={1}
-                value={desiredWithdrawal || ''}
-                onChange={(event) =>
-                  setDesiredWithdrawal(Number(event.target.value) || 0)
-                }
-                placeholder="20000"
-                className="mt-1"
-              />
-            </div>
-          )}
-          {insightMode === 'WITHDRAWAL_TO_CORPUS' && (
-            <div>
-              <Label htmlFor="duration-years">
-                Horizon (years) <span className="text-xs text-slate-500">(optional)</span>
-              </Label>
-              <Input
-                id="duration-years"
-                type="number"
-                min={0}
-                value={durationYears || ''}
-                onChange={(event) => setDurationYears(Number(event.target.value) || 0)}
-                placeholder="15"
-                className="mt-1"
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                Provide a duration to estimate the corpus for a finite SWP. Leave blank for
-                indefinite withdrawals.
-              </p>
-            </div>
-          )}
+            />
+          </div>
           <div>
             <Label htmlFor="frequency">Withdrawal Frequency</Label>
             <Select value={frequency} onValueChange={(value: Frequency) => setFrequency(value)}>
@@ -818,7 +923,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
           <Card className="p-4 sm:p-6 border border-slate-200 bg-white">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
               <div className="flex items-start gap-2">
-                <div>
+              <div>
                   <h3 className="text-lg font-semibold text-slate-900">
                     Safe withdrawal insights
                   </h3>
@@ -841,23 +946,23 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               <Badge variant="outline" className="text-slate-600 border-slate-200">
                 Risk factor: {formatNumber(insights.riskFactor, 1)}
               </Badge>
-            </div>
+              </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Portfolio CAGR
-                </div>
+                      </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.portfolioCAGR !== null
                     ? `${formatNumber(insights.portfolioCAGR, 2)}%`
                     : 'Not enough history'}
-                </div>
+                  </div>
               </div>
               <div>
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Annualized volatility
-                </div>
+                  </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.portfolioVolatility !== null
                     ? `${formatNumber(insights.portfolioVolatility, 2)}%`
@@ -880,18 +985,18 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : '—'}
                 </div>
               </div>
-            </div>
+              </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Safe monthly withdrawal (from current corpus)
-                </div>
+                      </div>
                 <div className="text-xl font-semibold text-slate-900">
                   {insights.safeMonthlyWithdrawal !== null
                     ? formatCurrency(insights.safeMonthlyWithdrawal)
                     : 'Not enough history'}
-                </div>
+                  </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Based on total investment of {formatCurrency(totalInvestment)}.
                 </p>
@@ -900,29 +1005,35 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               <Card className="border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase text-slate-500 font-semibold mb-1">
                   Corpus required for target withdrawal
-                </div>
+              </div>
                 <div className="flex flex-col gap-1 text-slate-900 font-semibold text-sm">
-                  <span>
-                    Indefinite:{' '}
-                    {insights.requiredCorpusIndefinite !== null
-                      ? formatCurrency(insights.requiredCorpusIndefinite)
-                      : desiredWithdrawal > 0
-                      ? 'Not enough history'
-                      : 'Enter a monthly withdrawal'}
+                {mode === 'TARGET' ? (
+                  <>
+                    <span>
+                      Indefinite:{' '}
+                      {displayedRequiredCorpus !== null
+                        ? formatCurrency(displayedRequiredCorpus)
+                        : 'Run the simulation to calculate'}
+                    </span>
+                    <span>
+                      {durationYears > 0 ? (
+                        <>
+                          {durationYears} years:{' '}
+                          {displayedHorizonCorpus !== null
+                            ? formatCurrency(displayedHorizonCorpus)
+                            : 'Run the simulation to calculate'}
+                        </>
+                      ) : (
+                        'Provide a horizon to estimate finite-duration corpus.'
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-xs text-slate-500 font-normal">
+                    Switch to &quot;I Have a Target Withdrawal&quot; to estimate the corpus needed for a desired income.
                   </span>
-                  <span>
-                    {durationYears > 0 ? (
-                      <>
-                        {durationYears} years:{' '}
-                        {insights.requiredCorpusFixedHorizon !== null
-                          ? formatCurrency(insights.requiredCorpusFixedHorizon)
-                          : 'Not enough history'}
-                      </>
-                    ) : (
-                      'Provide a horizon to estimate finite-duration corpus.'
-                    )}
-                  </span>
-                </div>
+                )}
+        </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Uses adjusted return of{' '}
                   {insights.adjustedReturnPercent !== null
@@ -930,7 +1041,7 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
                     : 'Not enough history'}{' '}
                   (CAGR minus volatility).
                 </p>
-              </Card>
+      </Card>
             </div>
           </Card>
         </TooltipProvider>
