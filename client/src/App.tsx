@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
-import { FundSearch } from './components/FundSearch';
-import { FundBucket } from './components/FundBucket';
-import { CalculatorButtons } from './components/CalculatorButtons';
-import { SIPCalculator } from './components/calculators/SIPCalculator';
-import { RollingCalculator } from './components/calculators/RollingCalculator';
-import { LumpsumCalculator } from './components/calculators/LumpsumCalculator';
-import { SWPCalculator } from './components/calculators/SWPCalculator';
-import { SIPLumpsumCalculator } from './components/calculators/SIPLumpsumCalculator';
+import React, { useState, useCallback } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { LandingPage } from './components/LandingPage';
+import { RetirePlanTab } from './components/RetirePlanTab';
+import { InvestmentTab } from './components/InvestmentTab';
 import { TrendingUp, PieChart, Calculator, BarChart3 } from 'lucide-react';
+import type { Bucket } from './types/bucket';
 
 export interface Fund {
   id: string;
@@ -20,7 +17,7 @@ export interface SelectedFund extends Fund {
   weightage: number;
 }
 
-export type CalculatorType = 'SIP' | 'SIPLumpsum' | 'Rolling' | 'Lumpsum' | 'SWP' | null;
+export type TabType = 'Landing' | 'RetirePlan' | 'Investment';
 
 // Utility function to distribute 100% weightage as whole numbers
 const distributeWeightage = (count: number): number[] => {
@@ -42,7 +39,8 @@ const distributeWeightage = (count: number): number[] => {
 
 export default function App() {
   const [selectedFunds, setSelectedFunds] = useState<SelectedFund[]>([]);
-  const [activeCalculator, setActiveCalculator] = useState<CalculatorType>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('Landing');
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
 
   const handleAddFund = (fund: Fund) => {
     // Check if fund already exists in bucket
@@ -90,22 +88,27 @@ export default function App() {
     ));
   };
 
-  const renderCalculator = () => {
-    switch (activeCalculator) {
-      case 'SIP':
-        return <SIPCalculator funds={selectedFunds} />;
-      case 'SIPLumpsum':
-        return <SIPLumpsumCalculator funds={selectedFunds} />;
-      case 'Rolling':
-        return <RollingCalculator funds={selectedFunds} />;
-      case 'Lumpsum':
-        return <LumpsumCalculator funds={selectedFunds} />;
-      case 'SWP':
-        return <SWPCalculator funds={selectedFunds} />;
-      default:
-        return null;
-    }
-  };
+  const handleCreateBucket = useCallback((name: string, funds: SelectedFund[]) => {
+    const newBucket: Bucket = {
+      id: `bucket-${Date.now()}`,
+      name,
+      funds: [...funds], // Create a copy
+      createdAt: new Date().toISOString(),
+    };
+    setBuckets(prev => [...prev, newBucket]);
+  }, []);
+
+  const handleDeleteBucket = useCallback((bucketId: string) => {
+    setBuckets(prev => prev.filter(b => b.id !== bucketId));
+  }, []);
+
+  const handleAddFundsToBucket = useCallback((bucketId: string, funds: SelectedFund[]) => {
+    setBuckets(prev => prev.map(bucket => 
+      bucket.id === bucketId 
+        ? { ...bucket, funds: [...funds] }
+        : bucket
+    ));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50">
@@ -117,13 +120,13 @@ export default function App() {
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                The Lal Street
-              </h1>
-              <p className="text-xs text-slate-500 hidden sm:block">Portfolio Analysis & Investment Calculator</p>
-              <p className="text-xs text-slate-500 sm:hidden">Investment Calculator</p>
-            </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  The Lal Street
+                </h1>
+                <p className="text-xs text-slate-500 hidden sm:block">Portfolio Analysis & Investment Calculator</p>
+                <p className="text-xs text-slate-500 sm:hidden">Investment Calculator</p>
+              </div>
             </div>
             
             {/* Stats Badge */}
@@ -136,12 +139,12 @@ export default function App() {
                     <div className="text-sm font-semibold text-slate-900">{selectedFunds.length} {selectedFunds.length === 1 ? 'Fund' : 'Funds'}</div>
                   </div>
                 </div>
-                {activeCalculator && (
+                {buckets.length > 0 && (
                   <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 border border-green-100">
                     <Calculator className="w-4 h-4 text-green-600" />
                     <div className="text-left">
-                      <div className="text-xs text-slate-500">Active</div>
-                      <div className="text-sm font-semibold text-slate-900">{activeCalculator}</div>
+                      <div className="text-xs text-slate-500">Buckets</div>
+                      <div className="text-sm font-semibold text-slate-900">{buckets.length}</div>
                     </div>
                   </div>
                 )}
@@ -152,130 +155,48 @@ export default function App() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Hero Section / Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 text-white relative overflow-hidden border border-blue-500">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-white rounded-full -translate-y-16 translate-x-16 sm:-translate-y-32 sm:translate-x-32"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-white rounded-full translate-y-12 -translate-x-12 sm:translate-y-24 sm:-translate-x-24"></div>
-            </div>
-            
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6" />
-                <span className="text-xs sm:text-sm font-medium opacity-90">Professional Investment Tools</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3">
-                Mutual Fund Portfolio Calculator
-              </h2>
-              <p className="text-blue-100 text-sm sm:text-base max-w-2xl">
-                Analyze your portfolio performance with real-time NAV data. Calculate SIP returns, lumpsum investments, 
-                rolling returns, and systematic withdrawal plans with industry-standard metrics.
-              </p>
-              
-              {/* Feature Pills */}
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-4 sm:mt-6">
-                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ Real NAV Data
-                </div>
-                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ XIRR & CAGR
-                </div>
-                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ Rolling Returns
-                </div>
-                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white/30 backdrop-blur-sm text-xs font-medium border border-white/40">
-                  ✓ Multi-Fund
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="Landing" className="flex items-center justify-center gap-2">
+              <PieChart className="h-4 w-4" />
+              <span className="hidden sm:inline">Landing</span>
+              <span className="sm:hidden">Home</span>
+            </TabsTrigger>
+            <TabsTrigger value="RetirePlan" className="flex items-center justify-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Retire/Yearly Return Plan</span>
+              <span className="sm:hidden">Retire</span>
+            </TabsTrigger>
+            <TabsTrigger value="Investment" className="flex items-center justify-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Investment</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Fund Search */}
-        <div className="mb-6">
-          <FundSearch onSelectFund={handleAddFund} />
-        </div>
-
-        {/* Fund Bucket */}
-        {selectedFunds.length > 0 && (
-          <div className="mb-8">
-            <FundBucket
-              funds={selectedFunds}
+          <TabsContent value="Landing" className="mt-0">
+            <LandingPage
+              selectedFunds={selectedFunds}
+              onAddFund={handleAddFund}
               onRemoveFund={handleRemoveFund}
               onWeightageChange={handleWeightageChange}
             />
-          </div>
-        )}
+          </TabsContent>
 
-        {/* Calculator Type Selection */}
-        {selectedFunds.length > 0 && (
-          <div className="mb-8">
-            <CalculatorButtons
-              activeCalculator={activeCalculator}
-              onSelectCalculator={setActiveCalculator}
+          <TabsContent value="RetirePlan" className="mt-0">
+            <RetirePlanTab
+              selectedFunds={selectedFunds}
+              buckets={buckets}
+              onCreateBucket={handleCreateBucket}
+              onDeleteBucket={handleDeleteBucket}
+              onAddFundsToBucket={handleAddFundsToBucket}
             />
-          </div>
-        )}
+          </TabsContent>
 
-        {/* Active Calculator */}
-        {activeCalculator && selectedFunds.length > 0 && (
-          <div className="animate-in fade-in duration-300">
-            {renderCalculator()}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {selectedFunds.length === 0 && (
-          <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 mb-6 shadow-lg">
-              <PieChart className="w-10 h-10 text-blue-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">Start Building Your Portfolio</h3>
-            <p className="text-slate-600 max-w-md mx-auto mb-6">
-              Search for mutual funds above and add them to your portfolio to begin analyzing returns, 
-              calculating SIPs, and optimizing your investments.
-            </p>
-            
-            {/* Quick Guide */}
-            <div className="max-w-2xl mx-auto mt-8 sm:mt-12">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-blue-200 shadow-lg hover:shadow-xl hover:border-blue-300 transition-all">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
-                    <span className="text-xl sm:text-2xl">🔍</span>
-                  </div>
-                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">1. Search Funds</h4>
-                  <p className="text-xs text-slate-600">Find mutual funds by name or code</p>
-                </div>
-                
-                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-green-200 shadow-lg hover:shadow-xl hover:border-green-300 transition-all">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
-                    <span className="text-xl sm:text-2xl">📊</span>
-                  </div>
-                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">2. Set Weightage</h4>
-                  <p className="text-xs text-slate-600">Allocate portfolio percentages</p>
-                </div>
-                
-                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-amber-200 shadow-lg hover:shadow-xl hover:border-amber-300 transition-all">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
-                    <span className="text-xl sm:text-2xl">🧮</span>
-                  </div>
-                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">3. Choose Calculator</h4>
-                  <p className="text-xs text-slate-600">Select SIP, Lumpsum, or Rolling</p>
-                </div>
-                
-                <div className="p-3 sm:p-5 rounded-lg sm:rounded-xl bg-white border-2 border-purple-200 shadow-lg hover:shadow-xl hover:border-purple-300 transition-all">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-md">
-                    <span className="text-xl sm:text-2xl">📈</span>
-                  </div>
-                  <h4 className="font-semibold text-sm sm:text-base text-slate-900 mb-1">4. Analyze Results</h4>
-                  <p className="text-xs text-slate-600">View returns, XIRR, and charts</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          <TabsContent value="Investment" className="mt-0">
+            <InvestmentTab selectedFunds={selectedFunds} />
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Footer */}

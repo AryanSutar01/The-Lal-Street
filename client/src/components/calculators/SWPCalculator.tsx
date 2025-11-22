@@ -1293,6 +1293,91 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
         </TooltipProvider>
       )}
 
+      {result?.rollingReturns && (
+        <Card className="p-4 sm:p-6 border-slate-200">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            1-Year Rolling Returns (Daily Lumpsum)
+          </h3>
+          <div className="rounded-lg border border-slate-200 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="text-slate-700">Fund Name</TableHead>
+                  <TableHead className="text-slate-700 text-right">Mean %</TableHead>
+                  <TableHead className="text-slate-700 text-right">Median %</TableHead>
+                  <TableHead className="text-slate-700 text-right">Max %</TableHead>
+                  <TableHead className="text-slate-700 text-right">Min %</TableHead>
+                  <TableHead className="text-slate-700 text-right">Std Dev %</TableHead>
+                  <TableHead className="text-slate-700 text-right">Positive Periods %</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="bg-blue-50 hover:bg-blue-100 font-medium">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-slate-900" />
+                      <span className="text-slate-900">Bucket (All Funds)</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-slate-900">
+                    {formatNumber(result.rollingReturns.bucketData.mean, 2)}%
+                  </TableCell>
+                  <TableCell className="text-right text-slate-900">
+                    {formatNumber(result.rollingReturns.bucketData.median, 2)}%
+                  </TableCell>
+                  <TableCell className="text-right text-green-700">
+                    {formatNumber(result.rollingReturns.bucketData.max, 2)}%
+                  </TableCell>
+                  <TableCell className="text-right text-red-700">
+                    {formatNumber(result.rollingReturns.bucketData.min, 2)}%
+                  </TableCell>
+                  <TableCell className="text-right text-slate-900">
+                    {formatNumber(result.rollingReturns.bucketData.stdDev, 2)}%
+                  </TableCell>
+                  <TableCell className="text-right text-slate-900">
+                    {formatNumber(result.rollingReturns.bucketData.positivePercentage, 1)}%
+                  </TableCell>
+                </TableRow>
+                {result.rollingReturns.fundData.map((fund, index) => {
+                  const fundColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                  return (
+                    <TableRow key={fund.fundId} className="hover:bg-slate-50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: fundColors[index % fundColors.length] }}
+                          />
+                          <span className="text-slate-900">{fund.fundName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-slate-900">
+                        {formatNumber(fund.mean, 2)}%
+                      </TableCell>
+                      <TableCell className="text-right text-slate-900">
+                        {formatNumber(fund.median, 2)}%
+                      </TableCell>
+                      <TableCell className="text-right text-green-700">
+                        {formatNumber(fund.max, 2)}%
+                      </TableCell>
+                      <TableCell className="text-right text-red-700">
+                        {formatNumber(fund.min, 2)}%
+                      </TableCell>
+                      <TableCell className="text-right text-slate-900">
+                        {formatNumber(fund.stdDev, 2)}%
+                      </TableCell>
+                      <TableCell className="text-right text-slate-900">
+                        {formatNumber(fund.positivePercentage, 1)}%
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
       {error && (
         <Card className="p-4 bg-red-50 border border-red-200 text-red-800">
           {error}
@@ -1544,91 +1629,6 @@ export function SWPCalculator({ funds }: SWPCalculatorProps) {
               </TableBody>
             </Table>
           </Card>
-
-          {result.rollingReturns && (
-            <Card className="p-4 sm:p-6 border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                1-Year Rolling Returns (Daily Lumpsum)
-              </h3>
-              <div className="rounded-lg border border-slate-200 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead className="text-slate-700">Fund Name</TableHead>
-                      <TableHead className="text-slate-700 text-right">Mean %</TableHead>
-                      <TableHead className="text-slate-700 text-right">Median %</TableHead>
-                      <TableHead className="text-slate-700 text-right">Max %</TableHead>
-                      <TableHead className="text-slate-700 text-right">Min %</TableHead>
-                      <TableHead className="text-slate-700 text-right">Std Dev %</TableHead>
-                      <TableHead className="text-slate-700 text-right">Positive Periods %</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow className="bg-blue-50 hover:bg-blue-100 font-medium">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-slate-900" />
-                          <span className="text-slate-900">Bucket (All Funds)</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(result.rollingReturns.bucketData.mean, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(result.rollingReturns.bucketData.median, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-green-700">
-                        {formatNumber(result.rollingReturns.bucketData.max, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-red-700">
-                        {formatNumber(result.rollingReturns.bucketData.min, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(result.rollingReturns.bucketData.stdDev, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(result.rollingReturns.bucketData.positivePercentage, 1)}%
-                      </TableCell>
-                    </TableRow>
-                    {result.rollingReturns.fundData.map((fund, index) => {
-                      const fundColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                      return (
-                        <TableRow key={fund.fundId} className="hover:bg-slate-50">
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: fundColors[index % fundColors.length] }}
-                              />
-                              <span className="text-slate-900">{fund.fundName}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right text-slate-900">
-                            {formatNumber(fund.mean, 2)}%
-                          </TableCell>
-                          <TableCell className="text-right text-slate-900">
-                            {formatNumber(fund.median, 2)}%
-                          </TableCell>
-                          <TableCell className="text-right text-green-700">
-                            {formatNumber(fund.max, 2)}%
-                          </TableCell>
-                          <TableCell className="text-right text-red-700">
-                            {formatNumber(fund.min, 2)}%
-                          </TableCell>
-                          <TableCell className="text-right text-slate-900">
-                            {formatNumber(fund.stdDev, 2)}%
-                          </TableCell>
-                          <TableCell className="text-right text-slate-900">
-                            {formatNumber(fund.positivePercentage, 1)}%
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          )}
 
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-slate-900">Withdrawal ledger</h3>
