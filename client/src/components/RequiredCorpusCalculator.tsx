@@ -194,7 +194,10 @@ export function RequiredCorpusCalculator({
               id="payout"
               type="number"
               value={payout}
-              onChange={(e) => setPayout(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value) || 0;
+                setPayout(value >= 0 ? value : 0);
+              }}
               prefix="₹"
               className="pl-8"
             />
@@ -218,10 +221,13 @@ export function RequiredCorpusCalculator({
           <Input
             id="duration"
             type="number"
-            min="1"
-            max="50"
+            min="0"
+            max="100"
             value={duration}
-            onChange={(e) => setDuration(parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 0;
+              setDuration(value >= 0 && value <= 100 ? value : (value < 0 ? 0 : 100));
+            }}
           />
           <p className="text-xs text-gray-500 mt-1">Enter 0 or leave blank for indefinite withdrawal</p>
         </div>
@@ -278,7 +284,10 @@ export function RequiredCorpusCalculator({
             max="10"
             step="0.5"
             value={riskFactor}
-            onChange={(e) => setRiskFactor(parseFloat(e.target.value) || 3)}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 3;
+              setRiskFactor(value >= 0.1 && value <= 10 ? value : (value < 0.1 ? 0.1 : 10));
+            }}
           />
           <p className="text-xs text-gray-500 mt-1">Higher = More Conservative (Recommended: 3-5)</p>
         </div>

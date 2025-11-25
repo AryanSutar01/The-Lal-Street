@@ -927,7 +927,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={totalInvestment || ''}
-                    onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setTotalInvestment(value >= 0 ? value : 0);
+                    }}
                     placeholder="500000"
                     className="mt-1"
                   />
@@ -939,7 +942,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={withdrawalAmount}
-                    onChange={(event) => setWithdrawalAmount(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setWithdrawalAmount(value >= 0 ? value : 0);
+                    }}
                     placeholder="15000"
                     className="mt-1"
                   />
@@ -957,7 +963,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={totalInvestment || ''}
-                    onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setTotalInvestment(value >= 0 ? value : 0);
+                    }}
                     placeholder="500000"
                     className="mt-1"
                   />
@@ -996,7 +1005,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={desiredWithdrawal || ''}
-                    onChange={(event) => setDesiredWithdrawal(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setDesiredWithdrawal(value >= 0 ? value : 0);
+                    }}
                     placeholder="20000"
                     className="mt-1"
                   />
@@ -1026,8 +1038,12 @@ export function SWPCalculator({
                     id="duration-years"
                     type="number"
                     min={0}
+                  max={100}
                     value={durationYears || ''}
-                    onChange={(event) => setDurationYears(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setDurationYears(value >= 0 && value <= 100 ? value : (value < 0 ? 0 : 100));
+                    }}
                     placeholder="15"
                     className="mt-1"
                   />
@@ -1052,7 +1068,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={totalInvestment || ''}
-                    onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setTotalInvestment(value >= 0 ? value : 0);
+                    }}
                     placeholder="500000"
                     className="mt-1"
                   />
@@ -1064,7 +1083,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={withdrawalAmount}
-                    onChange={(event) => setWithdrawalAmount(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setWithdrawalAmount(value >= 0 ? value : 0);
+                    }}
                     placeholder="15000"
                     className="mt-1"
                   />
@@ -1082,7 +1104,10 @@ export function SWPCalculator({
                     type="number"
                     min={1}
                     value={totalInvestment || ''}
-                    onChange={(event) => setTotalInvestment(Number(event.target.value) || 0)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setTotalInvestment(value >= 0 ? value : 0);
+                    }}
                     placeholder="500000"
                     className="mt-1"
                   />
@@ -1122,7 +1147,10 @@ export function SWPCalculator({
                       type="number"
                       min={1}
                       value={desiredWithdrawal || ''}
-                      onChange={(event) => setDesiredWithdrawal(Number(event.target.value) || 0)}
+                      onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setDesiredWithdrawal(value >= 0 ? value : 0);
+                    }}
                       placeholder="20000"
                       className="mt-1"
                     />
@@ -1153,7 +1181,10 @@ export function SWPCalculator({
                       type="number"
                       min={0}
                       value={durationYears || ''}
-                      onChange={(event) => setDurationYears(Number(event.target.value) || 0)}
+                      onChange={(event) => {
+                      const value = Number(event.target.value) || 0;
+                      setDurationYears(value >= 0 && value <= 100 ? value : (value < 0 ? 0 : 100));
+                    }}
                       placeholder="15"
                       className="mt-1"
                     />
@@ -1222,10 +1253,12 @@ export function SWPCalculator({
                 id="custom-frequency"
                 type="number"
                 min={1}
+                max={365}
                 value={customFrequencyDays}
-                onChange={(event) =>
-                  setCustomFrequencyDays(Number(event.target.value) || 1)
-                }
+                onChange={(event) => {
+                  const value = Number(event.target.value) || 1;
+                  setCustomFrequencyDays(value >= 1 && value <= 365 ? value : (value < 1 ? 1 : 365));
+                }}
                 placeholder="30"
                 className="mt-1"
               />
@@ -1250,12 +1283,14 @@ export function SWPCalculator({
                 <Input
                   id="risk-factor"
                   type="number"
-                  min={1}
-                  step={0.1}
+                  min={0.1}
+                  max={10}
+                step={0.1}
                   value={riskFactor}
-                  onChange={(event) =>
-                    setRiskFactor(Math.max(0.1, Number(event.target.value) || 0))
-                  }
+                  onChange={(event) => {
+                    const value = Number(event.target.value) || 3;
+                    setRiskFactor(value >= 0.1 && value <= 10 ? value : (value < 0.1 ? 0.1 : 10));
+                  }}
                   className="mt-1"
                 />
                 <p className="text-xs text-slate-500 mt-1">

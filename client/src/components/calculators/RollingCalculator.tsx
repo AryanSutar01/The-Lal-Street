@@ -641,7 +641,10 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
               min="500"
               step="500"
               value={monthlyInvestment}
-              onChange={(e) => setMonthlyInvestment(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value) || 0;
+                setMonthlyInvestment(value >= 0 ? value : 0);
+              }}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
@@ -684,7 +687,11 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
                 min="1"
                 max={rollingWindowType === 'years' ? 20 : 240}
                 value={rollingWindowValue}
-                onChange={(e) => setRollingWindowValue(parseFloat(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 1;
+                  const max = rollingWindowType === 'years' ? 20 : 240;
+                  setRollingWindowValue(value >= 1 ? (value <= max ? value : max) : 1);
+                }}
                 className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 w-20"
               />
               <Select value={rollingWindowType} onValueChange={setRollingWindowType}>

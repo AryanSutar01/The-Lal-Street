@@ -239,7 +239,10 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               min="1000"
               step="1000"
               value={investmentAmount}
-              onChange={(e) => setInvestmentAmount(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value) || 0;
+                setInvestmentAmount(value >= 0 ? value : 0);
+              }}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>

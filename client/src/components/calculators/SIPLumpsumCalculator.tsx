@@ -588,9 +588,13 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                 id="monthly-investment"
                 type="number"
                 value={monthlyInvestment}
-                onChange={(e) => setMonthlyInvestment(Number(e.target.value))}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setMonthlyInvestment(value >= 0 ? value : 0);
+                }}
                 placeholder="10000"
                 min="100"
+                step="100"
               />
             </div>
             
@@ -647,9 +651,13 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                     id="lumpsum-amount"
                     type="number"
                     value={lumpsumAmount}
-                    onChange={(e) => setLumpsumAmount(Number(e.target.value))}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setLumpsumAmount(value >= 0 ? value : 0);
+                    }}
                     placeholder="20000"
                     min="1000"
+                    step="1000"
                   />
                 </div>
                 

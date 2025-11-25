@@ -150,10 +150,13 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                 id="annual-income"
                 type="number"
                 value={formData.annualIncome || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  annualIncome: parseFloat(e.target.value) || 0 
-                }))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    annualIncome: value >= 0 ? value : 0 
+                  }));
+                }}
                 required
                 min="0"
                 prefix="₹"
@@ -166,10 +169,13 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                 id="expenses"
                 type="number"
                 value={formData.expenses || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  expenses: parseFloat(e.target.value) || 0 
-                }))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    expenses: value >= 0 ? value : 0 
+                  }));
+                }}
                 required
                 min="0"
                 prefix="₹"
@@ -182,10 +188,13 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                 id="investments"
                 type="number"
                 value={formData.investments || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  investments: parseFloat(e.target.value) || 0 
-                }))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    investments: value >= 0 ? value : 0 
+                  }));
+                }}
                 min="0"
                 prefix="₹"
                 className="pl-8"
@@ -198,10 +207,13 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                 id="loan-amount"
                 type="number"
                 value={formData.loanAmount || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  loanAmount: parseFloat(e.target.value) || 0 
-                }))}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    loanAmount: value >= 0 ? value : 0 
+                  }));
+                }}
                 min="0"
                 prefix="₹"
                 className="pl-8"

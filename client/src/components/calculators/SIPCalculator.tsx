@@ -449,9 +449,13 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
               id="monthly-investment"
               type="number"
               value={monthlyInvestment}
-              onChange={(e) => setMonthlyInvestment(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setMonthlyInvestment(value >= 0 ? value : 0);
+              }}
               placeholder="10000"
               min="100"
+              step="100"
             />
           </div>
           

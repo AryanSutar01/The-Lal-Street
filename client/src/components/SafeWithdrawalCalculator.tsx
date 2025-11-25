@@ -167,7 +167,10 @@ export function SafeWithdrawalCalculator({ funds, initialCorpus, onBacktest }: S
               id="corpus"
               type="number"
               value={corpus}
-              onChange={(e) => setCorpus(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value) || 0;
+                setCorpus(value >= 0 ? value : 0);
+              }}
               prefix="₹"
               className="pl-8"
             />
@@ -238,7 +241,10 @@ export function SafeWithdrawalCalculator({ funds, initialCorpus, onBacktest }: S
             max="10"
             step="0.5"
             value={riskFactor}
-            onChange={(e) => setRiskFactor(parseFloat(e.target.value) || 3)}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 3;
+              setRiskFactor(value >= 0.1 && value <= 10 ? value : (value < 0.1 ? 0.1 : 10));
+            }}
           />
           <p className="text-xs text-gray-500 mt-1">Higher = More Conservative (Recommended: 3-5)</p>
         </div>

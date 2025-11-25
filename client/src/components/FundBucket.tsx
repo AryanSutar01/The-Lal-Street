@@ -93,7 +93,11 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
                         max="100"
                         step="0.1"
                         value={fund.weightage}
-                        onChange={(e) => onWeightageChange(fund.id, parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          const clampedValue = Math.max(0, Math.min(100, value));
+                          onWeightageChange(fund.id, clampedValue);
+                        }}
                         className="w-24 text-center mx-auto"
                       />
                     </TableCell>
