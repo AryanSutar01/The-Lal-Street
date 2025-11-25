@@ -13,7 +13,9 @@ interface FundBucketProps {
 }
 
 export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucketProps) {
-  const totalWeightage = funds.reduce((sum, fund) => sum + fund.weightage, 0);
+  // Safety check: ensure funds is always an array
+  const fundsArray = funds || [];
+  const totalWeightage = fundsArray.reduce((sum, fund) => sum + fund.weightage, 0);
   const isValidAllocation = totalWeightage === 100;
 
   const formatDate = (dateStr: string) => {
@@ -32,8 +34,8 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">Fund Bucket</h3>
           <p className="text-xs sm:text-sm text-gray-600">
             Manage your selected funds and weightage allocation 
-            <span className={`ml-2 font-medium ${funds.length >= 5 ? 'text-red-600' : 'text-blue-600'}`}>
-              ({funds.length}/5 funds)
+            <span className={`ml-2 font-medium ${fundsArray.length >= 5 ? 'text-red-600' : 'text-blue-600'}`}>
+              ({fundsArray.length}/5 funds)
             </span>
           </p>
         </div>
@@ -45,7 +47,7 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
         </div>
       </div>
 
-      {funds.length === 0 ? (
+      {fundsArray.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
             <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -70,7 +72,7 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {funds.map((fund) => (
+                {fundsArray.map((fund) => (
                   <TableRow key={fund.id}>
                     <TableCell className="font-medium">
                       {fund.name}
@@ -113,7 +115,7 @@ export function FundBucket({ funds, onRemoveFund, onWeightageChange }: FundBucke
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
-            {funds.map((fund) => (
+            {fundsArray.map((fund) => (
               <Card key={fund.id} className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">

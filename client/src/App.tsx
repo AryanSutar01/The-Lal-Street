@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import { LandingPage } from './components/LandingPage';
-import { RetirePlanTab } from './components/RetirePlanTab';
-import { InvestmentTab } from './components/InvestmentTab';
-import { TrendingUp, PieChart, Calculator, BarChart3 } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Navigation } from './components/Navigation';
+import { HomePage } from './components/HomePage';
+import { InvestmentPlanPage } from './components/InvestmentPlanPage';
+import { RetirementPlanPage } from './components/RetirementPlanPage';
+import { FinancialPlanningPage } from './components/FinancialPlanningPage';
+import { AdminPage } from './components/AdminPage';
 import type { Bucket } from './types/bucket';
+import type { SuggestedBucket } from './types/suggestedBucket';
 
 export interface Fund {
   id: string;
@@ -17,7 +19,7 @@ export interface SelectedFund extends Fund {
   weightage: number;
 }
 
-export type TabType = 'Landing' | 'RetirePlan' | 'Investment';
+export type PageType = 'home' | 'investment-plan' | 'retirement-plan' | 'financial-planning' | 'admin';
 
 // Utility function to distribute 100% weightage as whole numbers
 const distributeWeightage = (count: number): number[] => {
@@ -38,61 +40,118 @@ const distributeWeightage = (count: number): number[] => {
 };
 
 export default function App() {
-  const [selectedFunds, setSelectedFunds] = useState<SelectedFund[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('Landing');
+  // Separate fund selections for Investment and Retirement plans
+  const [investmentFunds, setInvestmentFunds] = useState<SelectedFund[]>([]);
+  const [retirementFunds, setRetirementFunds] = useState<SelectedFund[]>([]);
+  const [activePage, setActivePage] = useState<PageType>('home');
   const [buckets, setBuckets] = useState<Bucket[]>([]);
 
-  const handleAddFund = (fund: Fund) => {
-    // Check if fund already exists in bucket
-    if (selectedFunds.find(f => f.id === fund.id)) {
-      return;
+  // Handle URL hash for direct navigation (including admin access via #admin)
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash && ['home', 'investment-plan', 'retirement-plan', 'financial-planning', 'admin'].includes(hash)) {
+      setActivePage(hash as PageType);
     }
-    
-    // Check fund limit (max 5 funds)
-    if (selectedFunds.length >= 5) {
+  }, []);
+
+  // Listen for hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash && ['home', 'investment-plan', 'retirement-plan', 'financial-planning', 'admin'].includes(hash)) {
+        setActivePage(hash as PageType);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Investment Plan Handlers
+  const handleAddInvestmentFund = (fund: Fund) => {
+    if (investmentFunds.find(f => f.id === fund.id)) return;
+    if (investmentFunds.length >= 5) {
       alert('Maximum 5 funds allowed in the bucket. Please remove a fund before adding a new one.');
       return;
     }
     
-    // Calculate equal weightage using whole numbers
-    const newCount = selectedFunds.length + 1;
+    const newCount = investmentFunds.length + 1;
     const weights = distributeWeightage(newCount);
     
-    const updatedFunds = selectedFunds.map((f, index) => ({
+    const updatedFunds = investmentFunds.map((f, index) => ({
       ...f,
       weightage: weights[index]
     }));
     
-    setSelectedFunds([...updatedFunds, { ...fund, weightage: weights[newCount - 1] }]);
+    setInvestmentFunds([...updatedFunds, { ...fund, weightage: weights[newCount - 1] }]);
   };
 
-  const handleRemoveFund = (fundId: string) => {
-    const filtered = selectedFunds.filter(f => f.id !== fundId);
+  const handleRemoveInvestmentFund = (fundId: string) => {
+    const filtered = investmentFunds.filter(f => f.id !== fundId);
     
-    // Redistribute weightage equally using whole numbers
     if (filtered.length > 0) {
       const weights = distributeWeightage(filtered.length);
       const redistributed = filtered.map((f, index) => ({
         ...f,
         weightage: weights[index]
       }));
-      setSelectedFunds(redistributed);
+      setInvestmentFunds(redistributed);
     } else {
-      setSelectedFunds([]);
+      setInvestmentFunds([]);
     }
   };
 
-  const handleWeightageChange = (fundId: string, weightage: number) => {
-    setSelectedFunds(selectedFunds.map(f => 
+  const handleInvestmentWeightageChange = (fundId: string, weightage: number) => {
+    setInvestmentFunds(investmentFunds.map(f => 
       f.id === fundId ? { ...f, weightage } : f
     ));
   };
 
+  // Retirement Plan Handlers
+  const handleAddRetirementFund = (fund: Fund) => {
+    if (retirementFunds.find(f => f.id === fund.id)) return;
+    if (retirementFunds.length >= 5) {
+      alert('Maximum 5 funds allowed in the bucket. Please remove a fund before adding a new one.');
+      return;
+    }
+    
+    const newCount = retirementFunds.length + 1;
+    const weights = distributeWeightage(newCount);
+    
+    const updatedFunds = retirementFunds.map((f, index) => ({
+      ...f,
+      weightage: weights[index]
+    }));
+    
+    setRetirementFunds([...updatedFunds, { ...fund, weightage: weights[newCount - 1] }]);
+  };
+
+  const handleRemoveRetirementFund = (fundId: string) => {
+    const filtered = retirementFunds.filter(f => f.id !== fundId);
+    
+    if (filtered.length > 0) {
+      const weights = distributeWeightage(filtered.length);
+      const redistributed = filtered.map((f, index) => ({
+        ...f,
+        weightage: weights[index]
+      }));
+      setRetirementFunds(redistributed);
+    } else {
+      setRetirementFunds([]);
+    }
+  };
+
+  const handleRetirementWeightageChange = (fundId: string, weightage: number) => {
+    setRetirementFunds(retirementFunds.map(f => 
+      f.id === fundId ? { ...f, weightage } : f
+    ));
+  };
+
+  // Bucket Handlers
   const handleCreateBucket = useCallback((name: string, funds: SelectedFund[]) => {
     const newBucket: Bucket = {
       id: `bucket-${Date.now()}`,
       name,
-      funds: [...funds], // Create a copy
+      funds: [...funds],
       createdAt: new Date().toISOString(),
     };
     setBuckets(prev => [...prev, newBucket]);
@@ -110,97 +169,78 @@ export default function App() {
     ));
   }, []);
 
+  const handleNavigate = (page: PageType) => {
+    setActivePage(page);
+    // Scroll to top when navigating
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Suggested Bucket Import Handler
+  const handleImportSuggestedBucket = useCallback((bucket: SuggestedBucket, targetPage: 'investment' | 'retirement') => {
+    // Import funds from suggested bucket
+    const fundsToImport: SelectedFund[] = bucket.funds.map((fund) => ({
+      ...fund,
+      weightage: fund.weightage || 0
+    }));
+
+    if (targetPage === 'investment') {
+      setInvestmentFunds(fundsToImport);
+    } else {
+      setRetirementFunds(fundsToImport);
+    }
+    
+    // Navigate to the target page
+    setActivePage(targetPage === 'investment' ? 'investment-plan' : 'retirement-plan');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const renderPage = () => {
+    switch (activePage) {
+      case 'home':
+        return <HomePage onNavigate={handleNavigate} onImportBucket={handleImportSuggestedBucket} />;
+      case 'investment-plan':
+        return (
+          <InvestmentPlanPage
+            selectedFunds={investmentFunds}
+            onAddFund={handleAddInvestmentFund}
+            onRemoveFund={handleRemoveInvestmentFund}
+            onWeightageChange={handleInvestmentWeightageChange}
+          />
+        );
+      case 'retirement-plan':
+        return (
+          <RetirementPlanPage
+            selectedFunds={retirementFunds}
+            onAddFund={handleAddRetirementFund}
+            onRemoveFund={handleRemoveRetirementFund}
+            onWeightageChange={handleRetirementWeightageChange}
+          />
+        );
+      case 'financial-planning':
+        return <FinancialPlanningPage />;
+      case 'admin':
+        return <AdminPage onNavigate={handleNavigate} />;
+      default:
+        return <HomePage />;
+    }
+  };
+
+  const totalFundsCount = investmentFunds.length + retirementFunds.length;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50">
-      {/* Top Navigation Bar */}
-      <div className="bg-white border-b border-slate-300 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  The Lal Street
-                </h1>
-                <p className="text-xs text-slate-500 hidden sm:block">Portfolio Analysis & Investment Calculator</p>
-                <p className="text-xs text-slate-500 sm:hidden">Investment Calculator</p>
-              </div>
-            </div>
-            
-            {/* Stats Badge */}
-            {selectedFunds.length > 0 && (
-              <div className="hidden md:flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 border border-blue-100">
-                  <PieChart className="w-4 h-4 text-blue-600" />
-                  <div className="text-left">
-                    <div className="text-xs text-slate-500">Portfolio</div>
-                    <div className="text-sm font-semibold text-slate-900">{selectedFunds.length} {selectedFunds.length === 1 ? 'Fund' : 'Funds'}</div>
-                  </div>
-                </div>
-                {buckets.length > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 border border-green-100">
-                    <Calculator className="w-4 h-4 text-green-600" />
-                    <div className="text-left">
-                      <div className="text-xs text-slate-500">Buckets</div>
-                      <div className="text-sm font-semibold text-slate-900">{buckets.length}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* Main Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="Landing" className="flex items-center justify-center gap-2">
-              <PieChart className="h-4 w-4" />
-              <span className="hidden sm:inline">Landing</span>
-              <span className="sm:hidden">Home</span>
-            </TabsTrigger>
-            <TabsTrigger value="RetirePlan" className="flex items-center justify-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Retire/Yearly Return Plan</span>
-              <span className="sm:hidden">Retire</span>
-            </TabsTrigger>
-            <TabsTrigger value="Investment" className="flex items-center justify-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Investment</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="Landing" className="mt-0">
-            <LandingPage
-              selectedFunds={selectedFunds}
-              onAddFund={handleAddFund}
-              onRemoveFund={handleRemoveFund}
-              onWeightageChange={handleWeightageChange}
-            />
-          </TabsContent>
-
-          <TabsContent value="RetirePlan" className="mt-0">
-            <RetirePlanTab
-              selectedFunds={selectedFunds}
-              buckets={buckets}
-              onCreateBucket={handleCreateBucket}
-              onDeleteBucket={handleDeleteBucket}
-              onAddFundsToBucket={handleAddFundsToBucket}
-            />
-          </TabsContent>
-
-          <TabsContent value="Investment" className="mt-0">
-            <InvestmentTab selectedFunds={selectedFunds} />
-          </TabsContent>
-        </Tabs>
-      </div>
+      <Navigation 
+        activePage={activePage} 
+        onNavigate={handleNavigate}
+        selectedFundsCount={totalFundsCount}
+      />
+      
+      <main>
+        {renderPage()}
+      </main>
       
       {/* Footer */}
-      <div className="mt-16 border-t-2 border-slate-300 bg-gradient-to-r from-white via-slate-50 to-white shadow-inner">
+      <footer className="mt-16 border-t-2 border-slate-300 bg-gradient-to-r from-white via-slate-50 to-white shadow-inner relative">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm font-medium text-slate-700">
@@ -216,7 +256,33 @@ export default function App() {
             </div>
           </div>
         </div>
-      </div>
+        
+        {/* Hidden Admin Login Button - Very Subtle, Bottom Right Corner */}
+        {activePage === 'home' && (
+          <button
+            onClick={() => setActivePage('admin')}
+            className="absolute bottom-2 right-4 text-slate-300/5 hover:text-slate-400/20 transition-opacity duration-300 cursor-pointer select-none"
+            title=""
+            aria-label="Admin Access"
+            style={{
+              fontSize: '8px',
+              fontFamily: 'monospace',
+              padding: '4px',
+              lineHeight: '1',
+              opacity: 0.03,
+              userSelect: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.2';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.03';
+            }}
+          >
+            ·
+          </button>
+        )}
+      </footer>
     </div>
   );
 }
