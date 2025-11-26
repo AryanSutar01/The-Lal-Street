@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, BarChart3, Calculator, Globe, Shield, Zap, Target, PieChart } from 'lucide-react';
+import { TrendingUp, BarChart3, Calculator, Shield, Zap, Target, PieChart } from 'lucide-react';
 import { Button } from './ui/button';
 import { SuggestedBuckets } from './SuggestedBuckets';
 import { loadSuggestedBuckets } from '../data/suggestedBuckets';
@@ -119,10 +119,13 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 text-center">
           <div className="mb-6 sm:mb-8">
-            {/* Enhanced Animated Globe Icon with 3D Effect */}
-            <div className="inline-flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl border-2 border-white/30 mb-6 sm:mb-8 animate-spin-slow shadow-2xl shadow-purple-500/20">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400/20 to-purple-600/20 blur-xl"></div>
-              <Globe className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-white relative z-10 drop-shadow-lg" />
+            {/* Logo Image */}
+            <div className="inline-flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mb-6 sm:mb-8">
+              <img 
+                src="/favicon.png" 
+                alt="The Lal Street Logo" 
+                className="w-full h-full object-contain drop-shadow-lg"
+              />
             </div>
           </div>
           

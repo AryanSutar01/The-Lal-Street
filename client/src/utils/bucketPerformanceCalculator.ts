@@ -110,7 +110,15 @@ export async function calculateBucketPerformance(
   });
 
   // Calculate rolling returns for each possible start date
-  // Daily lumpsum: invest on each day, calculate 1-year return
+  // Daily lumpsum: invest on each day, calculate 3-year return
+  // Process in chunks to avoid blocking the UI thread
+  const totalIterations = firstFundNav.length - ROLLING_WINDOW_DAYS + 1;
+  const CHUNK_SIZE = 50; // Process 50 iterations at a time
+  
+  // Helper function to yield control back to browser
+  const yieldToBrowser = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+  // Process calculations in chunks
   for (let i = 0; i <= firstFundNav.length - ROLLING_WINDOW_DAYS; i++) {
     const startDate = firstFundNav[i].date;
     const endDateObj = new Date(startDate);
@@ -170,6 +178,11 @@ export async function calculateBucketPerformance(
           fundRollingReturns[fund.id].push(fundAnnualizedReturn);
         }
       });
+    }
+
+    // Yield control back to browser every CHUNK_SIZE iterations to prevent UI blocking
+    if ((i + 1) % CHUNK_SIZE === 0) {
+      await yieldToBrowser();
     }
   }
 
