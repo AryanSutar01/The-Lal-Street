@@ -1,0 +1,67 @@
+[
+  {
+    "name": "test 1",
+    "description": "test 1",
+    "category": "both",
+    "funds": [
+      {
+        "id": "113069",
+        "name": "Motilal Oswal Nifty 50 ETF",
+        "launchDate": "2010-07-30",
+        "category": "Other Scheme - Other  ETFs",
+        "weightage": 50
+      },
+      {
+        "id": "100049",
+        "name": "Aditya Birla Sun Life Cash Plus-Institutional - Fortnightly Dividend",
+        "launchDate": "2006-04-02",
+        "category": "Income",
+        "weightage": 50
+      }
+    ],
+    "isActive": true,
+    "performance": {
+      "rollingReturns": {
+        "bucket": {
+          "mean": 4.738739014620198,
+          "median": 4.791433406735834,
+          "max": 18.35611217642681,
+          "min": -3.128998315749576,
+          "stdDev": 4.292559275355902,
+          "positivePercentage": 82.0283370618941
+        },
+        "funds": [
+          {
+            "fundId": "113069",
+            "fundName": "Motilal Oswal Nifty 50 ETF",
+            "mean": 8.83245302875286,
+            "median": 9.181214998972397,
+            "max": 32.30885244785795,
+            "min": -6.474035241086796,
+            "stdDev": 7.953442711957567,
+            "positivePercentage": 82.06562266964951
+          },
+          {
+            "fundId": "100049",
+            "fundName": "Aditya Birla Sun Life Cash Plus-Institutional - Fortnightly Dividend",
+            "mean": -0.0024638427878898917,
+            "median": 0,
+            "max": 0,
+            "min": -0.13989562186029758,
+            "stdDev": 0.012883655743132546,
+            "positivePercentage": 0
+          }
+        ]
+      },
+      "riskLevel": "moderate",
+      "analysisStartDate": "2010-07-30",
+      "analysisEndDate": "2025-11-26",
+      "totalPeriods": 2682
+    },
+    "riskLevel": "moderate",
+    "id": "bucket-1764162775770-n1azst0vl",
+    "createdAt": "2025-11-26T13:12:55.770Z",
+    "updatedAt": "2025-11-26T13:12:55.784Z",
+    "lastCalculationDate": "2025-11-26T13:12:55.770Z"
+  }
+]
