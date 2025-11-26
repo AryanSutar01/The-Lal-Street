@@ -77,11 +77,11 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Personal Information */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-4 sm:p-5 md:p-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Personal Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <Label htmlFor="name">Full Name *</Label>
               <Input
@@ -119,14 +119,14 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                   numberOfKids: value === 'single' ? 0 : prev.numberOfKids
                 }))}
               >
-                <div className="flex gap-4 mt-2">
+                <div className="flex gap-3 sm:gap-4 mt-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="single" id="single" />
-                    <Label htmlFor="single" className="cursor-pointer">Single</Label>
+                    <Label htmlFor="single" className="cursor-pointer text-sm sm:text-base">Single</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="married" id="married" />
-                    <Label htmlFor="married" className="cursor-pointer">Married</Label>
+                    <Label htmlFor="married" className="cursor-pointer text-sm sm:text-base">Married</Label>
                   </div>
                 </div>
               </RadioGroup>
@@ -153,9 +153,9 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
         </Card>
 
         {/* Financial Information */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Financial Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-4 sm:p-5 md:p-6">
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Financial Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <Label htmlFor="annual-income">Annual Income (₹) *</Label>
               <Input
@@ -237,22 +237,23 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
 
         {/* Children Information */}
         {formData.maritalStatus === 'married' && (
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Children Information</h3>
-            <div className="space-y-4">
+          <Card className="p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Children Information</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <Label>Number of Children</Label>
-                <div className="flex items-center gap-3 mt-2">
+                <Label className="text-sm sm:text-base">Number of Children</Label>
+                <div className="flex items-center gap-3 sm:gap-4 mt-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
                     onClick={() => handleKidsCountChange((formData.numberOfKids || 0) - 1)}
                     disabled={(formData.numberOfKids || 0) <= 0}
+                    className="h-9 w-9 sm:h-10 sm:w-10"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="text-lg font-semibold w-12 text-center">
+                  <span className="text-base sm:text-lg font-semibold w-12 text-center">
                     {formData.numberOfKids || 0}
                   </span>
                   <Button
@@ -261,6 +262,7 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                     size="icon"
                     onClick={() => handleKidsCountChange((formData.numberOfKids || 0) + 1)}
                     disabled={(formData.numberOfKids || 0) >= 10}
+                    className="h-9 w-9 sm:h-10 sm:w-10"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -269,10 +271,10 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
 
               {formData.numberOfKids! > 0 && (
                 <div className="space-y-3">
-                  <Label>Children's Date of Birth</Label>
+                  <Label className="text-sm sm:text-base">Children's Date of Birth</Label>
                   {Array.from({ length: formData.numberOfKids || 0 }).map((_, index) => (
                     <div key={index}>
-                      <Label htmlFor={`kid-dob-${index}`}>
+                      <Label htmlFor={`kid-dob-${index}`} className="text-sm sm:text-base">
                         Child {index + 1} DOB
                       </Label>
                       <Input
@@ -283,6 +285,7 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                         min={formData.dob || undefined}
                         max={new Date().toISOString().split('T')[0]}
                         required
+                        className="mt-1"
                       />
                       {formData.dob && formData.kidsDob?.[index] && formData.kidsDob[index] < formData.dob && (
                         <p className="text-xs text-red-600 mt-1">Child's DOB must be after parent's DOB</p>
@@ -295,8 +298,8 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
           </Card>
         )}
 
-        <Button type="submit" size="lg" className="w-full">
-          <Calculator className="h-5 w-5 mr-2" />
+        <Button type="submit" size="lg" className="w-full h-11 sm:h-12 text-sm sm:text-base">
+          <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
           Generate Financial Plan
         </Button>
       </div>
