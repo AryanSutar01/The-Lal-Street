@@ -17,9 +17,14 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
 
   useEffect(() => {
     // Load suggested buckets on component mount
-    const loadBuckets = () => {
-      const buckets = loadSuggestedBuckets();
-      setSuggestedBuckets(buckets.filter(b => b.isActive));
+    const loadBuckets = async () => {
+      try {
+        const buckets = await loadSuggestedBuckets(true); // activeOnly = true
+        setSuggestedBuckets(buckets);
+      } catch (error) {
+        console.error('Error loading suggested buckets:', error);
+        setSuggestedBuckets([]);
+      }
     };
 
     loadBuckets();
@@ -32,7 +37,8 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
         await checkAndRecalculateBuckets();
         
         // Reload buckets after recalculation
-        loadBuckets();
+        const reloaded = await loadSuggestedBuckets(true);
+        setSuggestedBuckets(reloaded);
       } catch (error) {
         console.error('Error in auto-recalculation:', error);
       } finally {

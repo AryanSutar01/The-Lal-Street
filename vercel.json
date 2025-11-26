@@ -11,6 +11,10 @@
     {
       "source": "/api/funds/get-nav-bucket",
       "destination": "/api/funds/get-nav-bucket.js"
+    },
+    {
+      "source": "/api/suggested-buckets/:path*",
+      "destination": "/api/suggested-buckets/index.js"
     }
   ],
   "functions": {

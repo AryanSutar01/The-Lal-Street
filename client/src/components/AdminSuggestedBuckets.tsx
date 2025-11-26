@@ -44,9 +44,14 @@ export function AdminSuggestedBuckets({ isAdmin = true }: AdminSuggestedBucketsP
     loadBuckets();
   }, []);
 
-  const loadBuckets = () => {
-    const loaded = loadSuggestedBuckets();
-    setBuckets(loaded);
+  const loadBuckets = async () => {
+    try {
+      const loaded = await loadSuggestedBuckets(false); // Load all, not just active
+      setBuckets(loaded);
+    } catch (error) {
+      console.error('Error loading suggested buckets:', error);
+      setBuckets([]);
+    }
   };
 
   const handleAddFund = (fund: Fund) => {
@@ -149,7 +154,7 @@ export function AdminSuggestedBuckets({ isAdmin = true }: AdminSuggestedBucketsP
 
       if (isEditing && editingBucketId) {
         // Update existing bucket
-        updateSuggestedBucket(editingBucketId, {
+        await updateSuggestedBucket(editingBucketId, {
           ...bucketData,
           lastCalculationDate: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -158,15 +163,15 @@ export function AdminSuggestedBuckets({ isAdmin = true }: AdminSuggestedBucketsP
         // Create new bucket
         const newBucket: SuggestedBucket = {
           ...bucketData,
-          id: `bucket-${Date.now()}`,
+          id: `bucket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           lastCalculationDate: new Date().toISOString(),
         };
-        addSuggestedBucket(newBucket);
+        await addSuggestedBucket(newBucket);
       }
 
-      loadBuckets();
+      await loadBuckets();
       resetForm();
       setIsDialogOpen(false);
     } catch (error: any) {
@@ -188,20 +193,29 @@ export function AdminSuggestedBuckets({ isAdmin = true }: AdminSuggestedBucketsP
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (bucketId: string) => {
+  const handleDelete = async (bucketId: string) => {
     if (confirm('Are you sure you want to delete this suggested bucket?')) {
-      deleteSuggestedBucket(bucketId);
-      loadBuckets();
+      try {
+        await deleteSuggestedBucket(bucketId);
+        await loadBuckets();
+      } catch (error: any) {
+        console.error('Error deleting bucket:', error);
+        alert(`Error deleting bucket: ${error.message}`);
+      }
     }
   };
 
-  const handleToggleActive = (bucket: SuggestedBucket) => {
-    updateSuggestedBucket(bucket.id, {
-      ...bucket,
-      isActive: !bucket.isActive,
-      updatedAt: new Date().toISOString(),
-    });
-    loadBuckets();
+  const handleToggleActive = async (bucket: SuggestedBucket) => {
+    try {
+      await updateSuggestedBucket(bucket.id, {
+        isActive: !bucket.isActive,
+        updatedAt: new Date().toISOString(),
+      });
+      await loadBuckets();
+    } catch (error: any) {
+      console.error('Error updating bucket:', error);
+      alert(`Error updating bucket: ${error.message}`);
+    }
   };
 
   if (!isAdmin) {

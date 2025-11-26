@@ -30,7 +30,7 @@ async function recalculateBucketPerformance(bucket: SuggestedBucket): Promise<Su
     };
 
     // Save updated bucket
-    updateSuggestedBucket(bucket.id, updatedBucket);
+    await updateSuggestedBucket(bucket.id, updatedBucket);
     
     console.log(`[Recalculation] Successfully recalculated bucket: ${bucket.name}`);
     return updatedBucket;
@@ -74,7 +74,7 @@ export async function checkAndRecalculateBuckets(): Promise<{
     console.log('[Recalculation] Server is healthy, checking buckets...');
 
     // Load all buckets
-    const buckets = loadSuggestedBuckets();
+    const buckets = await loadSuggestedBuckets(false);
     
     // Filter active buckets that need recalculation
     const bucketsToRecalculate = buckets.filter(bucket => {
@@ -119,7 +119,7 @@ export async function checkAndRecalculateBuckets(): Promise<{
  * Recalculate a specific bucket by ID
  */
 export async function recalculateSingleBucket(bucketId: string): Promise<SuggestedBucket | null> {
-  const buckets = loadSuggestedBuckets();
+  const buckets = await loadSuggestedBuckets(false);
   const bucket = buckets.find(b => b.id === bucketId);
   
   if (!bucket) {
