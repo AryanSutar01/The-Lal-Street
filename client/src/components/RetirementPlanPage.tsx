@@ -2,6 +2,7 @@ import React from 'react';
 import { FundSearch } from './FundSearch';
 import { FundBucket } from './FundBucket';
 import { RetirePlanTab } from './RetirePlanTab';
+import { BucketPerformanceDisplay } from './BucketPerformanceDisplay';
 import { Card } from './ui/card';
 import { Target } from 'lucide-react';
 import type { Fund, SelectedFund } from '../App';
@@ -59,10 +60,31 @@ export function RetirementPlanPage({
           </div>
         )}
 
+        {/* Bucket Performance Section */}
+        {selectedFunds.length >= 1 && (
+          <div className="mb-8">
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 2: Check Bucket Performance (Optional)</h2>
+              <p className="text-gray-600 mb-4">
+                Analyze your portfolio's historical performance before proceeding to retirement planning. This helps you understand how your selected funds have performed together historically.
+              </p>
+              <BucketPerformanceDisplay funds={selectedFunds} />
+            </Card>
+          </div>
+        )}
+
         {/* Retirement Planning Section */}
         {selectedFunds.length >= 1 && (
           <div>
-            <RetirePlanTab selectedFunds={selectedFunds} />
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 3: Plan Your Retirement</h2>
+              <p className="text-gray-600 mb-4">
+                Calculate your retirement corpus and withdrawal strategy using systematic withdrawal plans.
+              </p>
+            </Card>
+            <div className="mt-4">
+              <RetirePlanTab selectedFunds={selectedFunds} />
+            </div>
           </div>
         )}
 

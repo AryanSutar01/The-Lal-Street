@@ -27,10 +27,19 @@ export function FinancialPlanningResults({
     }).format(amount);
   };
 
-  const getZoneLabel = (locality: string): string => {
-    if (locality === 'metro') return 'Zone 1 (Metro Cities)';
-    if (locality === 'tier1') return 'Zone 2 (Tier-1/Non-Metro)';
-    return 'Zone 3 (Rest of India)';
+  const getZoneLabel = (inputs: FinancialInputs): string => {
+    // Show city name if available, otherwise fall back to zone/locality
+    if (inputs.city) {
+      const zoneLabel = inputs.zone === 1 ? 'Zone 1 (Metro)' : inputs.zone === 2 ? 'Zone 2 (Tier-1)' : 'Zone 3';
+      return `${inputs.city} - ${zoneLabel}`;
+    }
+    // Legacy support
+    if (inputs.locality) {
+      if (inputs.locality === 'metro') return 'Zone 1 (Metro Cities)';
+      if (inputs.locality === 'tier1') return 'Zone 2 (Tier-1/Non-Metro)';
+      return 'Zone 3 (Rest of India)';
+    }
+    return 'Not specified';
   };
 
   return (
@@ -111,7 +120,7 @@ export function FinancialPlanningResults({
               </div>
               <div>
                 <p className="text-gray-600">Region</p>
-                <p className="font-semibold">{getZoneLabel(inputs.locality)}</p>
+                <p className="font-semibold">{getZoneLabel(inputs)}</p>
               </div>
             </div>
           </div>
@@ -206,7 +215,7 @@ export function FinancialPlanningResults({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Region:</span>
-                  <span className="font-semibold">{getZoneLabel(inputs.locality)}</span>
+                  <span className="font-semibold">{getZoneLabel(inputs)}</span>
                 </div>
               </div>
             </Card>

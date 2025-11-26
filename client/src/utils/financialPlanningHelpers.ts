@@ -16,10 +16,19 @@ export function generateReportHTML(
   results: any,
   formatCurrency: (amount: number) => string
 ): string {
-  const getZoneLabel = (locality: string): string => {
-    if (locality === 'metro') return 'Zone 1 (Metro Cities)';
-    if (locality === 'tier1') return 'Zone 2 (Tier-1/Non-Metro)';
-    return 'Zone 3 (Rest of India)';
+  const getZoneLabel = (inputs: any): string => {
+    // Show city name if available, otherwise fall back to zone/locality
+    if (inputs.city) {
+      const zoneLabel = inputs.zone === 1 ? 'Zone 1 (Metro)' : inputs.zone === 2 ? 'Zone 2 (Tier-1)' : 'Zone 3';
+      return `${inputs.city} - ${zoneLabel}`;
+    }
+    // Legacy support
+    if (inputs.locality) {
+      if (inputs.locality === 'metro') return 'Zone 1 (Metro Cities)';
+      if (inputs.locality === 'tier1') return 'Zone 2 (Tier-1/Non-Metro)';
+      return 'Zone 3 (Rest of India)';
+    }
+    return 'Not specified';
   };
 
   return `
@@ -146,7 +155,7 @@ export function generateReportHTML(
       </tr>
       <tr>
         <th>Region</th>
-        <td>${getZoneLabel(inputs.locality)}</td>
+        <td>${getZoneLabel(inputs)}</td>
         <th>Career Stage</th>
         <td>${getCareerStageLabel(results.careerStage)}</td>
       </tr>

@@ -1206,7 +1206,20 @@ export function SWPCalculator({
               id="purchase-date"
               type="date"
               value={purchaseDate}
-              onChange={(event) => setPurchaseDate(event.target.value)}
+              onChange={(event) => {
+                const newPurchaseDate = event.target.value;
+                if (newPurchaseDate <= getToday()) {
+                  setPurchaseDate(newPurchaseDate);
+                  // Ensure SWP start date is not before purchase date
+                  if (swpStartDate && newPurchaseDate > swpStartDate) {
+                    setSwpStartDate(newPurchaseDate);
+                  }
+                  // Ensure end date is not before purchase date
+                  if (endDate && newPurchaseDate > endDate) {
+                    setEndDate(newPurchaseDate);
+                  }
+                }
+              }}
               max={getToday()}
               className="mt-1"
             />
@@ -1217,10 +1230,25 @@ export function SWPCalculator({
               id="swp-start-date"
               type="date"
               value={swpStartDate}
-              onChange={(event) => setSwpStartDate(event.target.value)}
-              max={getToday()}
+              onChange={(event) => {
+                const newSwpStartDate = event.target.value;
+                if (newSwpStartDate <= getToday()) {
+                  if ((!purchaseDate || newSwpStartDate >= purchaseDate)) {
+                    setSwpStartDate(newSwpStartDate);
+                    // Ensure end date is not before SWP start date
+                    if (endDate && newSwpStartDate > endDate) {
+                      setEndDate(newSwpStartDate);
+                    }
+                  }
+                }
+              }}
+              min={purchaseDate || undefined}
+              max={endDate || getToday()}
               className="mt-1"
             />
+            {purchaseDate && swpStartDate && purchaseDate > swpStartDate && (
+              <p className="text-xs text-red-600 mt-1">SWP start must be after purchase date</p>
+            )}
           </div>
           <div>
             <Label htmlFor="end-date">End Date</Label>
@@ -1228,10 +1256,22 @@ export function SWPCalculator({
               id="end-date"
               type="date"
               value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
+              onChange={(event) => {
+                const newEndDate = event.target.value;
+                if (newEndDate <= getToday()) {
+                  const minEndDate = swpStartDate || purchaseDate;
+                  if (!minEndDate || newEndDate >= minEndDate) {
+                    setEndDate(newEndDate);
+                  }
+                }
+              }}
+              min={(swpStartDate || purchaseDate) || undefined}
               max={getToday()}
               className="mt-1"
             />
+            {((purchaseDate && endDate && purchaseDate > endDate) || (swpStartDate && endDate && swpStartDate > endDate)) && (
+              <p className="text-xs text-red-600 mt-1">End date must be after purchase/SWP start date</p>
+            )}
           </div>
           <div>
             <Label htmlFor="frequency">Withdrawal Frequency</Label>

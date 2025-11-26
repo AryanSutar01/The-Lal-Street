@@ -2,7 +2,10 @@ export interface FinancialInputs {
   name: string;
   dob: string;
   maritalStatus: 'single' | 'married';
-  locality: 'metro' | 'tier1' | 'tier2'; // Zone 1, 2, 3
+  city: string; // City name selected by user
+  zone: 1 | 2 | 3; // Internal zone mapping (1=Metro, 2=Tier-1, 3=Rest of India)
+  // Legacy field for backward compatibility - kept for existing code
+  locality?: 'metro' | 'tier1' | 'tier2'; // Zone 1, 2, 3 (deprecated, use zone instead)
   annualIncome: number;
   expenses: number;
   investments: number;
@@ -59,13 +62,18 @@ export function calculateInflationAdjustedExpenses(
 
 // Get health insurance recommendation based on zone and income
 export function getHealthInsuranceRecommendation(
-  locality: 'metro' | 'tier1' | 'tier2',
+  zoneOrLocality: 1 | 2 | 3 | 'metro' | 'tier1' | 'tier2',
   annualIncome: number
 ): string {
   let zone: 1 | 2 | 3;
-  if (locality === 'metro') zone = 1;
-  else if (locality === 'tier1') zone = 2;
-  else zone = 3;
+  // Handle both new zone numbers and legacy locality strings
+  if (typeof zoneOrLocality === 'number') {
+    zone = zoneOrLocality;
+  } else {
+    if (zoneOrLocality === 'metro') zone = 1;
+    else if (zoneOrLocality === 'tier1') zone = 2;
+    else zone = 3;
+  }
 
   if (annualIncome <= 800000) {
     if (zone === 1) return '₹10-15 lakh';
@@ -89,8 +97,10 @@ export function calculateTermInsurance(
   const age = calculateAge(inputs.dob);
   const monthlyExpenses = inputs.expenses;
   
-  // Determine coverage period
+  // Determine coverage period and end age
   let coverageYears: number;
+  let endAge: number; // Age when coverage ends
+  
   if (inputs.numberOfKids > 0 && inputs.kidsDob && inputs.kidsDob.length > 0) {
     // Cover till youngest kid turns 30
     const kidAges = inputs.kidsDob
@@ -100,25 +110,41 @@ export function calculateTermInsurance(
     if (kidAges.length > 0) {
       const youngestKidAge = Math.min(...kidAges);
       coverageYears = COVERAGE_AGE_KIDS - youngestKidAge;
+      endAge = age + coverageYears;
     } else {
       coverageYears = COVERAGE_AGE_NO_KIDS - age;
+      endAge = COVERAGE_AGE_NO_KIDS;
     }
   } else {
     // Cover till 60
     coverageYears = COVERAGE_AGE_NO_KIDS - age;
+    endAge = COVERAGE_AGE_NO_KIDS;
   }
 
   // Ensure coverage years is positive
   coverageYears = Math.max(1, coverageYears);
+  
+  // For married people, also check if age 60 is later than kids turning 30
+  // Use whichever is later: age 60 or kids turning 30
+  if (inputs.maritalStatus === 'married') {
+    const age60Years = COVERAGE_AGE_NO_KIDS - age;
+    const age60EndAge = COVERAGE_AGE_NO_KIDS;
+    
+    if (age60EndAge > endAge) {
+      coverageYears = age60Years;
+      endAge = age60EndAge;
+    }
+  }
 
-  // Calculate inflation-adjusted monthly expenses for the coverage period
-  const avgYears = coverageYears / 2; // Average of coverage period
+  // Calculate expenses at the END of coverage period (when coverage ends)
+  // This ensures we cover the maximum inflated expense during the term
+  const yearsToEnd = endAge - age;
   const inflationAdjustedMonthly = calculateInflationAdjustedExpenses(
     monthlyExpenses,
-    avgYears
+    yearsToEnd
   );
 
-  // Calculate annual expenses
+  // Calculate annual expenses at end of coverage period
   const annualExpenses = inflationAdjustedMonthly * 12;
 
   // Calculate corpus needed to cover expenses at FD rate (7%)
@@ -201,15 +227,45 @@ export function calculateFinancialPlan(
   const careerStage = getCareerStage(age);
   const monthlyExpenses = inputs.expenses;
   
-  // Calculate inflation-adjusted expenses for 10 years (average planning period)
+  // Calculate inflation-adjusted expenses based on coverage period
+  // For display purposes, use the term insurance coverage period
+  let displayYears = 10; // Default
+  if (inputs.numberOfKids > 0 && inputs.kidsDob && inputs.kidsDob.length > 0) {
+    const kidAges = inputs.kidsDob
+      .filter(dob => dob)
+      .map(dob => calculateAge(dob));
+    if (kidAges.length > 0) {
+      const youngestKidAge = Math.min(...kidAges);
+      const kidsCoverageYears = COVERAGE_AGE_KIDS - youngestKidAge;
+      const age60Years = COVERAGE_AGE_NO_KIDS - age;
+      // Use whichever is longer
+      displayYears = Math.max(kidsCoverageYears, age60Years);
+    } else {
+      displayYears = COVERAGE_AGE_NO_KIDS - age;
+    }
+  } else {
+    displayYears = COVERAGE_AGE_NO_KIDS - age;
+  }
+  
+  // For married people, ensure we consider age 60 as well
+  if (inputs.maritalStatus === 'married') {
+    const age60Years = COVERAGE_AGE_NO_KIDS - age;
+    displayYears = Math.max(displayYears, age60Years);
+  }
+  
+  // Cap at reasonable display period
+  displayYears = Math.min(Math.max(displayYears, 1), 30);
+  
   const inflationAdjustedExpenses = calculateInflationAdjustedExpenses(
     monthlyExpenses,
-    10
+    displayYears
   );
 
   // Health insurance recommendation
+  // Use zone if available, otherwise fall back to legacy locality
+  const zoneOrLocality = inputs.zone || (inputs.locality ? (inputs.locality === 'metro' ? 1 : inputs.locality === 'tier1' ? 2 : 3) : 1);
   const healthInsuranceCover = getHealthInsuranceRecommendation(
-    inputs.locality,
+    zoneOrLocality,
     inputs.annualIncome
   );
 

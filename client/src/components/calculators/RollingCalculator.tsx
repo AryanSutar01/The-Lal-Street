@@ -11,7 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR } from '../../utils/financialCalculations';
-import { getNextAvailableNAV, getLatestNAVBeforeDate, addMonths } from '../../utils/dateUtils';
+import { getNextAvailableNAV, getLatestNAVBeforeDate, addMonths, getToday } from '../../utils/dateUtils';
 
 interface RollingCalculatorProps {
   funds: SelectedFund[];
@@ -44,12 +44,6 @@ interface BucketRollingData {
   stdDev: number;
   positivePercentage: number;
 }
-
-// Helper to get today's date in YYYY-MM-DD format
-const getToday = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
 
 // Helper to add months to a Date object and return a new Date
 const addMonthsToDate = (date: Date, months: number): Date => {
@@ -655,8 +649,18 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
               id="start-date"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const newStartDate = e.target.value;
+                if (newStartDate <= getToday()) {
+                  setStartDate(newStartDate);
+                  // Ensure end date is not before start date
+                  if (endDate && newStartDate > endDate) {
+                    setEndDate(newStartDate);
+                  }
+                }
+              }}
               min={minAvailableDate || undefined}
+              max={getToday()}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
             {minAvailableDate && (
@@ -673,9 +677,18 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
               type="date"
               value={endDate}
               max={getToday()}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const newEndDate = e.target.value;
+                if (newEndDate <= getToday() && (!startDate || newEndDate >= startDate)) {
+                  setEndDate(newEndDate);
+                }
+              }}
+              min={startDate || undefined}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
+            {startDate && endDate && startDate > endDate && (
+              <p className="text-xs text-red-600 mt-1">End date must be after start date</p>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -34,64 +34,75 @@ export function InvestmentTab({ selectedFunds }: InvestmentTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Investment Type Selection */}
-      {!investmentType && (
-        <Card className="p-6">
-          <Label className="text-base font-semibold mb-4 block">Select Investment Type</Label>
-          <RadioGroup value={investmentType || ''} onValueChange={(value) => setInvestmentType(value as InvestmentType)}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div 
-                className="flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-all"
-                onClick={() => setInvestmentType('SIP')}
-              >
-                <RadioGroupItem value="SIP" id="sip" />
-                <Label htmlFor="sip" className="cursor-pointer font-normal flex-1">
-                  SIP (Systematic Investment Plan)
-                </Label>
-              </div>
-              <div 
-                className="flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-all"
-                onClick={() => setInvestmentType('Lumpsum')}
-              >
-                <RadioGroupItem value="Lumpsum" id="lumpsum" />
-                <Label htmlFor="lumpsum" className="cursor-pointer font-normal flex-1">
-                  Lumpsum
-                </Label>
-              </div>
-              <div 
-                className="flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-all"
-                onClick={() => setInvestmentType('SIPLumpsum')}
-              >
-                <RadioGroupItem value="SIPLumpsum" id="siplumpsum" />
-                <Label htmlFor="siplumpsum" className="cursor-pointer font-normal flex-1">
-                  SIP + Lumpsum
-                </Label>
-              </div>
+      {/* Investment Type Selection - Always Visible */}
+      <Card className="p-6">
+        <Label className="text-base font-semibold mb-4 block">Select Investment Type</Label>
+        <RadioGroup value={investmentType || ''} onValueChange={(value) => setInvestmentType(value as InvestmentType)}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div 
+              className={`flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                investmentType === 'SIP' 
+                  ? 'border-blue-600 bg-blue-50' 
+                  : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300'
+              }`}
+              onClick={() => setInvestmentType('SIP')}
+            >
+              <RadioGroupItem value="SIP" id="sip" />
+              <Label htmlFor="sip" className={`cursor-pointer font-normal flex-1 ${
+                investmentType === 'SIP' ? 'font-semibold text-blue-700' : ''
+              }`}>
+                SIP (Systematic Investment Plan)
+              </Label>
             </div>
-          </RadioGroup>
-        </Card>
-      )}
+            <div 
+              className={`flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                investmentType === 'Lumpsum' 
+                  ? 'border-blue-600 bg-blue-50' 
+                  : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300'
+              }`}
+              onClick={() => setInvestmentType('Lumpsum')}
+            >
+              <RadioGroupItem value="Lumpsum" id="lumpsum" />
+              <Label htmlFor="lumpsum" className={`cursor-pointer font-normal flex-1 ${
+                investmentType === 'Lumpsum' ? 'font-semibold text-blue-700' : ''
+              }`}>
+                Lumpsum
+              </Label>
+            </div>
+            <div 
+              className={`flex items-center space-x-2 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                investmentType === 'SIPLumpsum' 
+                  ? 'border-blue-600 bg-blue-50' 
+                  : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300'
+              }`}
+              onClick={() => setInvestmentType('SIPLumpsum')}
+            >
+              <RadioGroupItem value="SIPLumpsum" id="siplumpsum" />
+              <Label htmlFor="siplumpsum" className={`cursor-pointer font-normal flex-1 ${
+                investmentType === 'SIPLumpsum' ? 'font-semibold text-blue-700' : ''
+              }`}>
+                SIP + Lumpsum
+              </Label>
+            </div>
+          </div>
+        </RadioGroup>
+      </Card>
 
-      {/* Show calculator directly when type is selected */}
+      {/* Show calculator below when type is selected */}
       {investmentType && (
         <div className="space-y-4">
-          {/* Back button to change investment type */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {investmentType === 'SIP' && 'SIP Calculator'}
-                {investmentType === 'Lumpsum' && 'Lumpsum Calculator'}
-                {investmentType === 'SIPLumpsum' && 'SIP + Lumpsum Calculator'}
-              </h3>
-              <p className="text-sm text-gray-600">Configure your investment and calculate returns</p>
+          <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {investmentType === 'SIP' && 'SIP Calculator'}
+                  {investmentType === 'Lumpsum' && 'Lumpsum Calculator'}
+                  {investmentType === 'SIPLumpsum' && 'SIP + Lumpsum Calculator'}
+                </h3>
+                <p className="text-sm text-gray-600">Configure your investment and calculate returns</p>
+              </div>
             </div>
-            <button
-              onClick={() => setInvestmentType(null)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Change Type
-            </button>
-          </div>
+          </Card>
 
           {/* Render the appropriate calculator */}
           {investmentType === 'SIP' && <SIPCalculator funds={selectedFunds} />}

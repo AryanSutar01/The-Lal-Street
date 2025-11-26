@@ -9,7 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
-import { getNextAvailableNAV, getLatestNAVBeforeDate } from '../../utils/dateUtils';
+import { getNextAvailableNAV, getLatestNAVBeforeDate, getToday } from '../../utils/dateUtils';
 import { calculateCAGR as calcCAGR } from '../../utils/financialCalculations';
 
 interface LumpsumCalculatorProps {
@@ -37,12 +37,6 @@ interface BucketPerformance {
   cagr: number;
   years: number;
 }
-
-// Helper to get today's date
-const getToday = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
 
 export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
   const [investmentAmount, setInvestmentAmount] = useState<number>(100000);
@@ -230,7 +224,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         </div>
 
         {/* Input Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
             <Label htmlFor="investment-amount">Total Investment (₹)</Label>
             <Input
@@ -253,8 +247,18 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               id="start-date"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const newStartDate = e.target.value;
+                if (newStartDate <= getToday()) {
+                  setStartDate(newStartDate);
+                  // Ensure end date is not before start date
+                  if (endDate && newStartDate > endDate) {
+                    setEndDate(newStartDate);
+                  }
+                }
+              }}
               min={minAvailableDate || undefined}
+              max={getToday()}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
             {minAvailableDate && (
@@ -271,21 +275,28 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               type="date"
               value={endDate}
               max={getToday()}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const newEndDate = e.target.value;
+                if (newEndDate <= getToday() && (!startDate || newEndDate >= startDate)) {
+                  setEndDate(newEndDate);
+                }
+              }}
+              min={startDate || undefined}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
-          </div>
-
-          <div className="flex items-end">
-            <Button 
-              onClick={calculateLumpsum}
-              disabled={isLoading || funds.length === 0}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isLoading ? 'Calculating...' : 'Calculate'}
-            </Button>
+            {startDate && endDate && startDate > endDate && (
+              <p className="text-xs text-red-600 mt-1">End date must be after start date</p>
+            )}
           </div>
         </div>
+
+        <Button 
+          onClick={calculateLumpsum}
+          disabled={isLoading || funds.length === 0}
+          className="w-full bg-black hover:bg-gray-800 text-white"
+        >
+          {isLoading ? 'Calculating...' : 'Calculate'}
+        </Button>
 
         {/* Error Message */}
         {error && (

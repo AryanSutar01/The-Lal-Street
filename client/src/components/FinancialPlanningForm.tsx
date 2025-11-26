@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Plus, Minus, Calculator } from 'lucide-react';
 import type { FinancialInputs } from '../utils/financialPlanningCalculations';
+import { CitySelector } from './CitySelector';
 
 interface FinancialPlanningFormProps {
   onSubmit: (inputs: FinancialInputs) => void;
@@ -17,7 +18,8 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
     name: '',
     dob: '',
     maritalStatus: 'single',
-    locality: 'metro',
+    city: 'Mumbai', // Default city
+    zone: 1, // Default zone (Mumbai is Zone 1)
     annualIncome: 0,
     expenses: 0,
     investments: 0,
@@ -60,11 +62,17 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
   };
 
   const handleKidDobChange = (index: number, dob: string) => {
-    setFormData(prev => {
-      const newKidsDob = [...(prev.kidsDob || [])];
-      newKidsDob[index] = dob;
-      return { ...prev, kidsDob: newKidsDob };
-    });
+    const today = new Date().toISOString().split('T')[0];
+    const parentDob = formData.dob;
+    
+    // Validate: DOB should not be in the future and should be after parent's DOB
+    if (dob <= today && (!parentDob || dob >= parentDob)) {
+      setFormData(prev => {
+        const newKidsDob = [...(prev.kidsDob || [])];
+        newKidsDob[index] = dob;
+        return { ...prev, kidsDob: newKidsDob };
+      });
+    }
   };
 
   return (
@@ -91,7 +99,12 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                 id="dob"
                 type="date"
                 value={formData.dob || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, dob: e.target.value }))}
+                onChange={(e) => {
+                  const newDob = e.target.value;
+                  if (newDob <= new Date().toISOString().split('T')[0]) {
+                    setFormData(prev => ({ ...prev, dob: newDob }));
+                  }
+                }}
                 required
                 max={new Date().toISOString().split('T')[0]}
               />
@@ -119,23 +132,22 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
               </RadioGroup>
             </div>
             <div>
-              <Label htmlFor="locality">Locality/Region *</Label>
-              <Select
-                value={formData.locality || 'metro'}
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  locality: value as 'metro' | 'tier1' | 'tier2' 
-                }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="metro">Metro Cities (Zone 1)</SelectItem>
-                  <SelectItem value="tier1">Tier-1/Non-Metro (Zone 2)</SelectItem>
-                  <SelectItem value="tier2">Rest of India (Zone 3)</SelectItem>
-                </SelectContent>
-              </Select>
+              <CitySelector
+                value={formData.city || 'Mumbai'}
+                onChange={(cityName, zone, state) => {
+                  // Store as "cityName|state" format if state is provided (for disambiguation)
+                  const cityValue = state ? `${cityName}|${state}` : cityName;
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    city: cityValue,
+                    zone: zone,
+                    // Keep legacy locality for backward compatibility
+                    locality: zone === 1 ? 'metro' : zone === 2 ? 'tier1' : 'tier2'
+                  }));
+                }}
+                label="City/Locality"
+                required
+              />
             </div>
           </div>
         </Card>
@@ -268,9 +280,13 @@ export function FinancialPlanningForm({ onSubmit }: FinancialPlanningFormProps) 
                         type="date"
                         value={formData.kidsDob?.[index] || ''}
                         onChange={(e) => handleKidDobChange(index, e.target.value)}
+                        min={formData.dob || undefined}
                         max={new Date().toISOString().split('T')[0]}
                         required
                       />
+                      {formData.dob && formData.kidsDob?.[index] && formData.kidsDob[index] < formData.dob && (
+                        <p className="text-xs text-red-600 mt-1">Child's DOB must be after parent's DOB</p>
+                      )}
                     </div>
                   ))}
                 </div>

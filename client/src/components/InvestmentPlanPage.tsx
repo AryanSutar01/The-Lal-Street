@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FundSearch } from './FundSearch';
 import { FundBucket } from './FundBucket';
 import { InvestmentTab } from './InvestmentTab';
+import { BucketPerformanceDisplay } from './BucketPerformanceDisplay';
 import { Card } from './ui/card';
 import { TrendingUp } from 'lucide-react';
 import type { Fund, SelectedFund } from '../App';
@@ -59,10 +60,31 @@ export function InvestmentPlanPage({
           </div>
         )}
 
+        {/* Bucket Performance Section */}
+        {selectedFunds.length >= 1 && (
+          <div className="mb-8">
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 2: Check Bucket Performance (Optional)</h2>
+              <p className="text-gray-600 mb-4">
+                Analyze your portfolio's historical performance before proceeding to calculators. This helps you understand how your selected funds have performed together historically.
+              </p>
+              <BucketPerformanceDisplay funds={selectedFunds} />
+            </Card>
+          </div>
+        )}
+
         {/* Calculator Section */}
         {selectedFunds.length >= 1 && (
           <div>
-            <InvestmentTab selectedFunds={selectedFunds} />
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Step 3: Calculate Investment Returns</h2>
+              <p className="text-gray-600 mb-4">
+                Select an investment strategy and calculate your expected returns based on historical NAV data.
+              </p>
+            </Card>
+            <div className="mt-4">
+              <InvestmentTab selectedFunds={selectedFunds} />
+            </div>
           </div>
         )}
 

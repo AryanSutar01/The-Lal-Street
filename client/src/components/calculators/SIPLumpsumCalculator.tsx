@@ -10,7 +10,7 @@ import { TrendingUp, TrendingDown, Plus, Minus } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
-import { getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths } from '../../utils/dateUtils';
+import { getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths, getToday } from '../../utils/dateUtils';
 
 interface SIPLumpsumCalculatorProps {
   funds: SelectedFund[];
@@ -54,10 +54,6 @@ const formatCurrency = (amount: number): string => {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(amount);
-};
-
-const getToday = (): string => {
-  return new Date().toISOString().split('T')[0];
 };
 
 export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
@@ -604,8 +600,22 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                 id="start-date"
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  const newStartDate = e.target.value;
+                  if (newStartDate <= getToday()) {
+                    setStartDate(newStartDate);
+                    // Ensure end date is not before start date
+                    if (endDate && newStartDate > endDate) {
+                      setEndDate(newStartDate);
+                    }
+                    // Ensure lumpsum date is not before start date
+                    if (hasLumpsum && lumpsumDate && newStartDate > lumpsumDate) {
+                      setLumpsumDate(newStartDate);
+                    }
+                  }
+                }}
                 min={minAvailableDate || undefined}
+                max={getToday()}
               />
               {minAvailableDate && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -620,9 +630,22 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                 id="end-date"
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  const newEndDate = e.target.value;
+                  if (newEndDate <= getToday() && (!startDate || newEndDate >= startDate)) {
+                    setEndDate(newEndDate);
+                    // Ensure lumpsum date is not after end date
+                    if (hasLumpsum && lumpsumDate && newEndDate < lumpsumDate) {
+                      setLumpsumDate(newEndDate);
+                    }
+                  }
+                }}
+                min={startDate || undefined}
                 max={getToday()}
               />
+              {startDate && endDate && startDate > endDate && (
+                <p className="text-xs text-red-600 mt-1">End date must be after start date</p>
+              )}
             </div>
           </div>
         </div>
@@ -667,13 +690,23 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                     id="lumpsum-date"
                     type="date"
                     value={lumpsumDate}
-                    onChange={(e) => setLumpsumDate(e.target.value)}
-                    min={startDate}
-                    max={endDate}
+                    onChange={(e) => {
+                      const newLumpsumDate = e.target.value;
+                      if (newLumpsumDate <= getToday()) {
+                        if ((!startDate || newLumpsumDate >= startDate) && (!endDate || newLumpsumDate <= endDate)) {
+                          setLumpsumDate(newLumpsumDate);
+                        }
+                      }
+                    }}
+                    min={startDate || undefined}
+                    max={endDate || getToday()}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Must be between SIP start and end dates
                   </p>
+                  {startDate && endDate && lumpsumDate && (lumpsumDate < startDate || lumpsumDate > endDate) && (
+                    <p className="text-xs text-red-600 mt-1">Date must be between start and end dates</p>
+                  )}
                 </div>
               </div>
 

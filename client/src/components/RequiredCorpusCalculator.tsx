@@ -239,7 +239,21 @@ export function RequiredCorpusCalculator({
               id="purchase-date"
               type="date"
               value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
+              onChange={(e) => {
+                const newPurchaseDate = e.target.value;
+                if (newPurchaseDate <= getToday()) {
+                  setPurchaseDate(newPurchaseDate);
+                  // Ensure SWP start date is not before purchase date
+                  if (swpStartDate && newPurchaseDate > swpStartDate) {
+                    setSwpStartDate(newPurchaseDate);
+                  }
+                  // Ensure end date is not before purchase date
+                  if (endDate && newPurchaseDate > endDate) {
+                    setEndDate(newPurchaseDate);
+                  }
+                }
+              }}
+              max={getToday()}
             />
           </div>
           <div>
@@ -248,8 +262,24 @@ export function RequiredCorpusCalculator({
               id="swp-start-date"
               type="date"
               value={swpStartDate}
-              onChange={(e) => setSwpStartDate(e.target.value)}
+              onChange={(e) => {
+                const newSwpStartDate = e.target.value;
+                if (newSwpStartDate <= getToday()) {
+                  if ((!purchaseDate || newSwpStartDate >= purchaseDate)) {
+                    setSwpStartDate(newSwpStartDate);
+                    // Ensure end date is not before SWP start date
+                    if (endDate && newSwpStartDate > endDate) {
+                      setEndDate(newSwpStartDate);
+                    }
+                  }
+                }
+              }}
+              min={purchaseDate || undefined}
+              max={endDate || getToday()}
             />
+            {purchaseDate && swpStartDate && purchaseDate > swpStartDate && (
+              <p className="text-xs text-red-600 mt-1">SWP start must be after purchase date</p>
+            )}
           </div>
           <div>
             <Label htmlFor="end-date">Analysis End Date</Label>
@@ -257,9 +287,21 @@ export function RequiredCorpusCalculator({
               id="end-date"
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const newEndDate = e.target.value;
+                if (newEndDate <= getToday()) {
+                  const minEndDate = swpStartDate || purchaseDate;
+                  if (!minEndDate || newEndDate >= minEndDate) {
+                    setEndDate(newEndDate);
+                  }
+                }
+              }}
+              min={(swpStartDate || purchaseDate) || undefined}
               max={getToday()}
             />
+            {((purchaseDate && endDate && purchaseDate > endDate) || (swpStartDate && endDate && swpStartDate > endDate)) && (
+              <p className="text-xs text-red-600 mt-1">End date must be after purchase/SWP start date</p>
+            )}
           </div>
         </div>
 
