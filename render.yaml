@@ -18,5 +18,7 @@ services:
         value: 5000
       - key: ALLOWED_ORIGINS
         value: https://the-lal-street-client.vercel.app,http://localhost:5173
+      - key: ADMIN_PASSWORD
+        sync: false  # This requires manual setup - set in Render dashboard
     healthCheckPath: /api/health
 

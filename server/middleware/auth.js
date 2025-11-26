@@ -24,9 +24,16 @@ const checkAdminAuth = (req, res, next) => {
     
     if (!adminPassword) {
       logger.warn('Admin password not configured in environment variables');
+      // In development, allow if NODE_ENV is not production
+      if (process.env.NODE_ENV !== 'production') {
+        logger.warn('Allowing admin access without password in development mode');
+        return next();
+      }
       return res.status(500).json({
         success: false,
-        message: 'Admin authentication not configured',
+        message: 'Admin authentication not configured. Please set ADMIN_PASSWORD environment variable.',
+        error: 'ADMIN_PASSWORD environment variable is missing',
+        hint: 'On Render: Dashboard > Your Service > Environment > Add ADMIN_PASSWORD variable. Set the same value in Vercel as VITE_ADMIN_PASSWORD.',
       });
     }
     

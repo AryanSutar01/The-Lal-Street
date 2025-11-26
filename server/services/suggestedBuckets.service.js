@@ -4,7 +4,9 @@ const path = require('path');
 const logger = require('../utils/logger');
 
 // File path for storing suggested buckets
-const BUCKETS_FILE_PATH = path.join(__dirname, '../../data/suggestedBuckets.json');
+// On Render with rootDir='server', process.cwd() is the server directory
+// So data file will be stored in server/data/suggestedBuckets.json
+const BUCKETS_FILE_PATH = path.join(process.cwd(), 'data', 'suggestedBuckets.json');
 
 // Ensure data directory exists
 const DATA_DIR = path.dirname(BUCKETS_FILE_PATH);
@@ -35,6 +37,7 @@ const loadSuggestedBuckets = async () => {
       return [];
     }
     logger.error('Error loading suggested buckets:', error.message);
+    logger.error('Error stack:', error.stack);
     return [];
   }
 };
@@ -55,7 +58,9 @@ const saveSuggestedBuckets = async (buckets) => {
     logger.info(`Saved ${buckets.length} suggested buckets to file`);
   } catch (error) {
     logger.error('Error saving suggested buckets:', error.message);
-    throw new Error('Failed to save suggested buckets');
+    logger.error('Error stack:', error.stack);
+    logger.error('Attempted path:', BUCKETS_FILE_PATH);
+    throw new Error(`Failed to save suggested buckets: ${error.message}`);
   }
 };
 
