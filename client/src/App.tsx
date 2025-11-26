@@ -5,6 +5,7 @@ import { InvestmentPlanPage } from './components/InvestmentPlanPage';
 import { RetirementPlanPage } from './components/RetirementPlanPage';
 import { FinancialPlanningPage } from './components/FinancialPlanningPage';
 import { AdminPage } from './components/AdminPage';
+import { Footer } from './components/Footer';
 import type { Bucket } from './types/bucket';
 import type { SuggestedBucket } from './types/suggestedBucket';
 
@@ -228,61 +229,45 @@ export default function App() {
   const totalFundsCount = investmentFunds.length + retirementFunds.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50">
       <Navigation 
         activePage={activePage} 
         onNavigate={handleNavigate}
         selectedFundsCount={totalFundsCount}
       />
       
-      <main>
+      <main className="flex-1">
         {renderPage()}
       </main>
       
       {/* Footer */}
-      <footer className="mt-16 border-t-2 border-slate-300 bg-gradient-to-r from-white via-slate-50 to-white shadow-inner relative">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-sm font-medium text-slate-700">
-              © 2024 The Lal Street. Built with real NAV data for accurate portfolio analysis.
-            </div>
-            <div className="flex items-center gap-4 text-sm text-slate-600">
-              <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-200">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="font-medium text-green-700">Live NAV Data</span>
-              </span>
-              <span className="text-slate-400">•</span>
-              <span className="font-medium">Industry-Standard Calculations</span>
-            </div>
-          </div>
-        </div>
-        
-        {/* Hidden Admin Login Button - Very Subtle, Bottom Right Corner */}
-        {activePage === 'home' && (
-          <button
-            onClick={() => setActivePage('admin')}
-            className="absolute bottom-2 right-4 text-slate-300/5 hover:text-slate-400/20 transition-opacity duration-300 cursor-pointer select-none"
-            title=""
-            aria-label="Admin Access"
-            style={{
-              fontSize: '8px',
-              fontFamily: 'monospace',
-              padding: '4px',
-              lineHeight: '1',
-              opacity: 0.03,
-              userSelect: 'none',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.2';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.03';
-            }}
-          >
-            ·
-          </button>
-        )}
-      </footer>
+      <Footer />
+      
+      {/* Hidden Admin Login Button - Very Subtle, Bottom Right Corner */}
+      {activePage === 'home' && (
+        <button
+          onClick={() => setActivePage('admin')}
+          className="fixed bottom-3 right-3 z-50 text-slate-300/5 hover:text-slate-400/20 transition-opacity duration-300 cursor-pointer select-none"
+          title=""
+          aria-label="Admin Access"
+          style={{
+            fontSize: '8px',
+            fontFamily: 'monospace',
+            padding: '4px',
+            lineHeight: '1',
+            opacity: 0.03,
+            userSelect: 'none',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '0.2';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.03';
+          }}
+        >
+          ·
+        </button>
+      )}
     </div>
   );
 }
