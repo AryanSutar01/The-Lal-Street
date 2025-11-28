@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 export interface ServerHealthStatus {
   isHealthy: boolean;
@@ -107,5 +107,40 @@ export function shouldRecalculate(lastCalculationDate?: string, daysThreshold: n
   const daysDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
 
   return daysDiff >= daysThreshold;
+}
+
+/**
+ * Warm up the server by hitting the health check endpoint
+ * This prevents cold start delays when the server is inactive
+ * Returns a promise that resolves when the server is warmed up (or times out)
+ */
+export async function warmUpServer(): Promise<void> {
+  try {
+    // Use a longer timeout for warm-up to allow server to start from cold state
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const response = await fetch(API_ENDPOINTS.HEALTH_CHECK, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      console.log('Server warmed up successfully');
+    } else {
+      console.warn('Server warm-up received non-OK response:', response.status);
+    }
+  } catch (error: any) {
+    // Silently handle errors - warm-up is best effort
+    // Server might still be starting up, which is fine
+    if (error.name !== 'AbortError') {
+      console.warn('Server warm-up failed (server may still be starting):', error.message);
+    }
+  }
 }
 

@@ -3,6 +3,7 @@ import { TrendingUp, BarChart3, Calculator, Shield, Zap, Target, PieChart } from
 import { Button } from './ui/button';
 import { SuggestedBuckets } from './SuggestedBuckets';
 import { loadSuggestedBuckets } from '../data/suggestedBuckets';
+import { warmUpServer } from '../utils/serverHealthCheck';
 import type { SuggestedBucket } from '../types/suggestedBucket';
 import type { SelectedFund } from '../App';
 
@@ -16,9 +17,19 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
-    // Load suggested buckets on component mount
-    const loadBuckets = async () => {
+    // Load suggested buckets with server warm-up
+    const loadBucketsWithWarmUp = async () => {
       try {
+        // First, warm up the server to prevent cold start delays
+        // This is especially important for Render.com deployments
+        console.log('Warming up server...');
+        await warmUpServer();
+        
+        // Give the server a moment to fully start up after warm-up
+        // Then load suggested buckets
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        
+        console.log('Loading suggested buckets...');
         const buckets = await loadSuggestedBuckets(true); // activeOnly = true
         setSuggestedBuckets(buckets);
       } catch (error) {
@@ -27,7 +38,7 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
       }
     };
 
-    loadBuckets();
+    loadBucketsWithWarmUp();
 
     // Check and recalculate buckets if needed (every 5 days, if server is not under load)
     const handleAutoRecalculation = async () => {

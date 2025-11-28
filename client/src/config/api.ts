@@ -8,5 +8,6 @@ export const API_ENDPOINTS = {
   FUNDS_SEARCH: `${API_BASE_URL}/api/funds/search`,
   FUNDS_NAV: `${API_BASE_URL}/api/funds/get-nav-bucket`,
   SUGGESTED_BUCKETS: `${API_BASE_URL}/api/suggested-buckets`,
+  HEALTH_CHECK: `${API_BASE_URL}/api/health`,
 } as const;
 
