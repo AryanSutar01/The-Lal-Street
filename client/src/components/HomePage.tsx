@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, BarChart3, Calculator, Shield, Zap, Target, PieChart } from 'lucide-react';
+import { TrendingUp, BarChart3, Calculator, Shield, Zap, Target, PieChart, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { SuggestedBuckets } from './SuggestedBuckets';
+import { Skeleton } from './ui/skeleton';
+import { Card } from './ui/card';
 import { loadSuggestedBuckets } from '../data/suggestedBuckets';
 import { warmUpServer } from '../utils/serverHealthCheck';
 import type { SuggestedBucket } from '../types/suggestedBucket';
@@ -14,12 +16,14 @@ interface HomePageProps {
 
 export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
   const [suggestedBuckets, setSuggestedBuckets] = useState<SuggestedBucket[]>([]);
+  const [isLoadingBuckets, setIsLoadingBuckets] = useState(true);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
     // Load suggested buckets with server warm-up
     const loadBucketsWithWarmUp = async () => {
       try {
+        setIsLoadingBuckets(true);
         // First, warm up the server to prevent cold start delays
         // This is especially important for Render.com deployments
         console.log('Warming up server...');
@@ -35,6 +39,8 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
       } catch (error) {
         console.error('Error loading suggested buckets:', error);
         setSuggestedBuckets([]);
+      } finally {
+        setIsLoadingBuckets(false);
       }
     };
 
@@ -319,12 +325,78 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
       </section>
 
       {/* Suggested Buckets Section */}
-      {suggestedBuckets.length > 0 && (
+      {isLoadingBuckets ? (
+        <section id="recommended-portfolios" className="py-8 sm:py-12 md:py-20 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-6 sm:mb-8 md:mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">
+                Recommended Portfolios
+              </h2>
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-2">
+                Expertly curated fund buckets with proven performance track records. 
+                Import these portfolios directly into your investment or retirement plans.
+              </p>
+            </div>
+
+            {/* Loading State */}
+            <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20">
+              <Loader2 className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 animate-spin text-emerald-600 mb-4 sm:mb-6" />
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 mb-2">
+                Loading Recommended Portfolios...
+              </h3>
+              <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto px-4">
+                We're fetching the latest curated investment portfolios for you
+              </p>
+            </div>
+
+            {/* Loading Skeleton Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 mt-8">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-4 sm:p-5 md:p-6 border-2 flex flex-col">
+                  <div className="mb-3 sm:mb-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <Skeleton className="h-5 sm:h-6 w-3/4" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  
+                  <div className="mb-3 sm:mb-4 space-y-2">
+                    <Skeleton className="h-12 sm:h-14 w-full rounded-lg" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Skeleton className="h-16 sm:h-20 rounded" />
+                      <Skeleton className="h-16 sm:h-20 rounded" />
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3 sm:mb-4 flex-1">
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 sm:gap-2.5 pt-3 sm:pt-4 border-t mt-auto">
+                    <Skeleton className="h-9 sm:h-10 w-full rounded-md" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Skeleton className="h-9 sm:h-10 w-full rounded-md" />
+                      <Skeleton className="h-9 sm:h-10 w-full rounded-md" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : suggestedBuckets.length > 0 ? (
         <SuggestedBuckets 
           buckets={suggestedBuckets} 
           onImportBucket={handleImportBucket}
         />
-      )}
+      ) : null}
 
       {/* CTA Section with Enhanced Background */}
       <section className="relative py-12 sm:py-16 md:py-20 lg:py-24 overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
