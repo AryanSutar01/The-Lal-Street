@@ -321,7 +321,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
 
         {/* Results Section */}
         {result && (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-6">
             {/* Performance Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
