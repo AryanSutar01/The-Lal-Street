@@ -30,7 +30,7 @@ import {
   Legend as RechartsLegend,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR } from '../../utils/financialCalculations';
@@ -122,26 +122,6 @@ interface SWPCalculationResult {
   chartData: ChartPoint[];
   fundSummaries: FundSummary[];
   tableRows: TableRowData[];
-  rollingReturns?: {
-    bucketData: {
-      mean: number;
-      median: number;
-      max: number;
-      min: number;
-      stdDev: number;
-      positivePercentage: number;
-    };
-    fundData: Array<{
-      fundId: string;
-      fundName: string;
-      mean: number;
-      median: number;
-      max: number;
-      min: number;
-      stdDev: number;
-      positivePercentage: number;
-    }>;
-  };
 }
 
 interface SWPInsights {
@@ -339,6 +319,11 @@ export function SWPCalculator({
   const frequencyDescriptor = frequencyLabel(frequency, customFrequencyDays);
 
   const calculateSWP = async () => {
+    // Prevent multiple simultaneous calculations
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -660,167 +645,6 @@ export function SWPCalculator({
         return point;
       });
 
-      // Calculate rolling returns (daily lumpsum with 1-year window)
-      const rollingWindowDays = 365;
-      const fundRollingData: Array<{
-        fundId: string;
-        fundName: string;
-        mean: number;
-        median: number;
-        max: number;
-        min: number;
-        stdDev: number;
-        positivePercentage: number;
-      }> = [];
-      
-      let bucketStats = {
-        mean: 0,
-        median: 0,
-        max: 0,
-        min: 0,
-        stdDev: 0,
-        positivePercentage: 0,
-      };
-      
-      // Find common date range for bucket calculation
-      const firstFundNav = navMap[funds[0]?.id];
-      if (firstFundNav && firstFundNav.length >= rollingWindowDays) {
-        const sortedFirstNav = [...firstFundNav].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        // Calculate for each fund
-        funds.forEach((fund) => {
-          const series = navMap[fund.id];
-          if (!series || series.length < rollingWindowDays) {
-            return; // Skip if insufficient data
-          }
-
-          const sortedNav = [...series].sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-          );
-          const fundInvestment = initialInvestmentByFund[fund.id];
-          const rollingReturns: number[] = [];
-
-          // Daily rolling with 1-year window
-          for (let i = 0; i <= sortedNav.length - rollingWindowDays; i++) {
-            const startNav = sortedNav[i];
-            const endIdx = i + rollingWindowDays - 1;
-            const endNav = sortedNav[endIdx];
-
-            if (startNav.nav > 0 && endNav.nav > 0) {
-              const units = fundInvestment / startNav.nav;
-              const finalValue = units * endNav.nav;
-              const daysDiff =
-                (new Date(endNav.date).getTime() - new Date(startNav.date).getTime()) /
-                (1000 * 60 * 60 * 24);
-              const annualizedReturn =
-                daysDiff > 0
-                  ? (Math.pow(finalValue / fundInvestment, 365 / daysDiff) - 1) * 100
-                  : 0;
-              rollingReturns.push(annualizedReturn);
-            }
-          }
-
-          if (rollingReturns.length > 0) {
-            const sorted = [...rollingReturns].sort((a, b) => a - b);
-            const mean = rollingReturns.reduce((sum, val) => sum + val, 0) / rollingReturns.length;
-            const median =
-              sorted.length % 2 === 0
-                ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-                : sorted[Math.floor(sorted.length / 2)];
-            const max = Math.max(...rollingReturns);
-            const min = Math.min(...rollingReturns);
-            const variance =
-              rollingReturns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-              rollingReturns.length;
-            const stdDev = Math.sqrt(variance);
-            const positiveCount = rollingReturns.filter((r) => r > 0).length;
-            const positivePercentage = (positiveCount / rollingReturns.length) * 100;
-
-            fundRollingData.push({
-              fundId: fund.id,
-              fundName: fund.name,
-              mean,
-              median,
-              max,
-              min,
-              stdDev,
-              positivePercentage,
-            });
-          }
-        });
-
-        // Calculate bucket rolling returns (weighted combination of all funds)
-        const bucketRollingReturns: number[] = [];
-
-        for (let i = 0; i <= sortedFirstNav.length - rollingWindowDays; i++) {
-            const startDate = sortedFirstNav[i].date;
-            const endDateObj = new Date(startDate);
-            endDateObj.setDate(endDateObj.getDate() + rollingWindowDays - 1);
-            const endDateStr = endDateObj.toISOString().split('T')[0];
-
-            let bucketInitialValue = 0;
-            let bucketFinalValue = 0;
-            let allFundsValid = true;
-
-            funds.forEach((fund) => {
-              const series = navMap[fund.id];
-              if (!series) {
-                allFundsValid = false;
-                return;
-              }
-
-              const sortedNav = [...series].sort(
-                (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-              );
-              const fundInvestment = initialInvestmentByFund[fund.id];
-              const startNav = getLatestNAVBeforeDate(sortedNav, startDate);
-              const endNav = getLatestNAVBeforeDate(sortedNav, endDateStr);
-
-              if (startNav && endNav && startNav.nav > 0 && endNav.nav > 0) {
-                const units = fundInvestment / startNav.nav;
-                bucketInitialValue += fundInvestment;
-                bucketFinalValue += units * endNav.nav;
-              } else {
-                allFundsValid = false;
-              }
-            });
-
-            if (allFundsValid && bucketInitialValue > 0 && bucketFinalValue > 0) {
-              const daysDiff =
-                (endDateObj.getTime() - new Date(startDate).getTime()) /
-                (1000 * 60 * 60 * 24);
-              const annualizedReturn =
-                daysDiff > 0
-                  ? (Math.pow(bucketFinalValue / bucketInitialValue, 365 / daysDiff) - 1) * 100
-                  : 0;
-              bucketRollingReturns.push(annualizedReturn);
-            }
-          }
-
-        // Calculate bucket statistics
-        if (bucketRollingReturns.length > 0) {
-          const sorted = [...bucketRollingReturns].sort((a, b) => a - b);
-          bucketStats.mean =
-            bucketRollingReturns.reduce((sum, val) => sum + val, 0) / bucketRollingReturns.length;
-          bucketStats.median =
-            sorted.length % 2 === 0
-              ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-              : sorted[Math.floor(sorted.length / 2)];
-          bucketStats.max = Math.max(...bucketRollingReturns);
-          bucketStats.min = Math.min(...bucketRollingReturns);
-          const variance =
-            bucketRollingReturns.reduce(
-              (sum, val) => sum + Math.pow(val - bucketStats.mean, 2),
-              0
-            ) / bucketRollingReturns.length;
-          bucketStats.stdDev = Math.sqrt(variance);
-          const positiveCount = bucketRollingReturns.filter((r) => r > 0).length;
-          bucketStats.positivePercentage =
-            (positiveCount / bucketRollingReturns.length) * 100;
-        }
-      }
 
       const tableRows: TableRowData[] = [];
       withdrawalEntries.forEach((entry) => {
@@ -885,13 +709,6 @@ export function SWPCalculator({
         chartData,
         fundSummaries,
         tableRows,
-        rollingReturns:
-          fundRollingData.length > 0 && bucketStats.mean !== 0
-            ? {
-                bucketData: bucketStats,
-                fundData: fundRollingData,
-              }
-            : undefined,
       });
 
       setShowTable(false);
@@ -1416,8 +1233,17 @@ export function SWPCalculator({
           className="w-full mt-6"
         >
           {isLoading ? 'Simulating...' : 'Run SWP Simulation'}
-              </Button>
+        </Button>
       </Card>
+
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="p-8 sm:p-10 md:p-12 text-center border-slate-200">
+          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-600 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Running SWP Simulation...</h3>
+          <p className="text-sm sm:text-base text-gray-600">This may take a few moments while we calculate your withdrawal strategy</p>
+        </Card>
+      )}
 
       {insights && (
         <TooltipProvider>
@@ -1549,90 +1375,6 @@ export function SWPCalculator({
         </TooltipProvider>
       )}
 
-      {result?.rollingReturns && (
-        <Card className="p-4 sm:p-6 border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">
-            1-Year Rolling Returns (Daily Lumpsum)
-          </h3>
-          <div className="rounded-lg border border-slate-200 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="text-slate-700">Fund Name</TableHead>
-                  <TableHead className="text-slate-700 text-right">Mean %</TableHead>
-                  <TableHead className="text-slate-700 text-right">Median %</TableHead>
-                  <TableHead className="text-slate-700 text-right">Max %</TableHead>
-                  <TableHead className="text-slate-700 text-right">Min %</TableHead>
-                  <TableHead className="text-slate-700 text-right">Std Dev %</TableHead>
-                  <TableHead className="text-slate-700 text-right">Positive Periods %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="bg-blue-50 hover:bg-blue-100 font-medium">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-slate-900" />
-                      <span className="text-slate-900">Bucket (All Funds)</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right text-slate-900">
-                    {formatNumber(result.rollingReturns.bucketData.mean, 2)}%
-                  </TableCell>
-                  <TableCell className="text-right text-slate-900">
-                    {formatNumber(result.rollingReturns.bucketData.median, 2)}%
-                  </TableCell>
-                  <TableCell className="text-right text-green-700">
-                    {formatNumber(result.rollingReturns.bucketData.max, 2)}%
-                  </TableCell>
-                  <TableCell className="text-right text-red-700">
-                    {formatNumber(result.rollingReturns.bucketData.min, 2)}%
-                  </TableCell>
-                  <TableCell className="text-right text-slate-900">
-                    {formatNumber(result.rollingReturns.bucketData.stdDev, 2)}%
-                  </TableCell>
-                  <TableCell className="text-right text-slate-900">
-                    {formatNumber(result.rollingReturns.bucketData.positivePercentage, 1)}%
-                  </TableCell>
-                </TableRow>
-                {result.rollingReturns.fundData.map((fund, index) => {
-                  const fundColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                  return (
-                    <TableRow key={fund.fundId} className="hover:bg-slate-50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: fundColors[index % fundColors.length] }}
-                          />
-                          <span className="text-slate-900">{fund.fundName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(fund.mean, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(fund.median, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-green-700">
-                        {formatNumber(fund.max, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-red-700">
-                        {formatNumber(fund.min, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(fund.stdDev, 2)}%
-                      </TableCell>
-                      <TableCell className="text-right text-slate-900">
-                        {formatNumber(fund.positivePercentage, 1)}%
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
 
       {error && (
         <Card className="p-4 bg-red-50 border border-red-200 text-red-800">
@@ -1923,23 +1665,59 @@ export function SWPCalculator({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {result.tableRows.map((row, index) => (
-                      <TableRow key={`${row.date}-${row.fundId}-${index}`}>
-                        <TableCell>{row.date}</TableCell>
-                        <TableCell>{row.fundName}</TableCell>
-                        <TableCell>{row.navDate}</TableCell>
-                        <TableCell>{formatNumber(row.nav, 2)}</TableCell>
-                        <TableCell>{formatCurrency(row.withdrawalAmount)}</TableCell>
-                        <TableCell>{formatNumber(row.unitsRedeemed, 4)}</TableCell>
-                        <TableCell>{formatNumber(row.unitsLeft, 4)}</TableCell>
-                        <TableCell>{formatCurrency(row.fundValue)}</TableCell>
-                        <TableCell>{formatCurrency(row.investedValue)}</TableCell>
-                        <TableCell>{formatCurrency(row.profitLoss)}</TableCell>
-                        <TableCell>{formatCurrency(row.principalDepletedValue)}</TableCell>
-                        <TableCell>{formatNumber(row.principalDepletionPercent, 2)}%</TableCell>
-                        <TableCell>{formatCurrency(row.portfolioValue)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {(() => {
+                      // Pre-calculate date groups once for all rows
+                      const dateGroups: Record<string, number> = {};
+                      let groupIndex = 0;
+                      result.tableRows.forEach((r) => {
+                        if (!dateGroups[r.date]) {
+                          dateGroups[r.date] = groupIndex;
+                          groupIndex++;
+                        }
+                      });
+                      
+                      const bgColors = [
+                        'bg-white',
+                        'bg-blue-50',
+                        'bg-green-50',
+                        'bg-purple-50',
+                        'bg-yellow-50',
+                      ];
+                      const hoverColors = [
+                        'hover:bg-gray-50',
+                        'hover:bg-blue-100',
+                        'hover:bg-green-100',
+                        'hover:bg-purple-100',
+                        'hover:bg-yellow-100',
+                      ];
+                      
+                      return result.tableRows.map((row, index) => {
+                        const groupColorIndex = dateGroups[row.date] ?? 0;
+                        const bgColor = bgColors[groupColorIndex % bgColors.length];
+                        const hoverColor = hoverColors[groupColorIndex % hoverColors.length];
+                        
+                        return (
+                          <TableRow 
+                            key={`${row.date}-${row.fundId}-${index}`}
+                            className={`${bgColor} ${hoverColor}`}
+                          >
+                            <TableCell>{row.date}</TableCell>
+                            <TableCell>{row.fundName}</TableCell>
+                            <TableCell>{row.navDate}</TableCell>
+                            <TableCell>{formatNumber(row.nav, 2)}</TableCell>
+                            <TableCell>{formatCurrency(row.withdrawalAmount)}</TableCell>
+                            <TableCell>{formatNumber(row.unitsRedeemed, 4)}</TableCell>
+                            <TableCell>{formatNumber(row.unitsLeft, 4)}</TableCell>
+                            <TableCell>{formatCurrency(row.fundValue)}</TableCell>
+                            <TableCell>{formatCurrency(row.investedValue)}</TableCell>
+                            <TableCell>{formatCurrency(row.profitLoss)}</TableCell>
+                            <TableCell>{formatCurrency(row.principalDepletedValue)}</TableCell>
+                            <TableCell>{formatNumber(row.principalDepletionPercent, 2)}%</TableCell>
+                            <TableCell>{formatCurrency(row.portfolioValue)}</TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
                   </TableBody>
                 </Table>
               )}

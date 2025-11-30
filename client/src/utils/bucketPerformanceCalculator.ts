@@ -54,7 +54,21 @@ function calculateStatistics(returns: number[]) {
 
 /**
  * Calculate rolling returns performance for a bucket
- * Uses daily lumpsum strategy from earliest available date
+ * 
+ * Calculation Parameters:
+ * - Rolling Window: 3 years (1095 days) - fixed window size
+ * - Method: Daily Lumpsum - calculates return for each possible start date
+ * - Date Range: From latest fund launch date (when ALL funds are available) to today
+ * - Frequency: Daily - one calculation per day, rolling forward
+ * - Investment Strategy: Lumpsum investment at each start date with portfolio weights
+ * - Annualization: Returns are annualized using compound annual growth rate formula
+ * 
+ * How it works:
+ * 1. For each day from analysisStartDate to (today - 1095 days):
+ *    - Invest lump sum using fund weightages on that day
+ *    - Calculate portfolio value after exactly 1095 days (3 years)
+ *    - Annualize the return
+ * 2. Aggregate all rolling returns to calculate statistics (mean, median, std dev, etc.)
  */
 export async function calculateBucketPerformance(
   funds: SelectedFund[]

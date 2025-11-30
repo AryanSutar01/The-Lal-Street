@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend as RechartsLegend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
@@ -86,6 +86,11 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
   }, [funds]);
 
   const calculateSIP = async () => {
+    // Prevent multiple simultaneous calculations
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -516,6 +521,15 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
           </p>
         )}
       </Card>
+
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="p-8 sm:p-10 md:p-12 text-center border-slate-200 mt-6">
+          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-600 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Calculating SIP Returns...</h3>
+          <p className="text-sm sm:text-base text-gray-600">This may take a few moments while we fetch NAV data and calculate returns</p>
+        </Card>
+      )}
 
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">

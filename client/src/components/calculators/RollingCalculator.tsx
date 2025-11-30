@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR } from '../../utils/financialCalculations';
@@ -112,6 +113,11 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
   }, [funds]);
 
   const calculateRolling = async () => {
+    // Prevent multiple simultaneous calculations
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -729,6 +735,15 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
             </Button>
           </div>
         </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <Card className="p-8 sm:p-10 md:p-12 text-center border-slate-200 mt-6">
+            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-600 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Calculating Rolling Returns...</h3>
+            <p className="text-sm sm:text-base text-gray-600">This may take a few moments while we fetch NAV data and calculate rolling returns</p>
+          </Card>
+        )}
 
         {/* Strategy and Period Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
