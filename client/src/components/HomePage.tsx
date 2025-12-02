@@ -90,95 +90,368 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section with Enhanced 3D Background */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Enhanced 3D Background Elements */}
+      {/* Hero Section with Dashboard Design */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden">
-          {/* Large Floating Orbs with More Depth */}
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-600/30 rounded-full mix-blend-screen filter blur-3xl animate-blob opacity-40"></div>
-          <div className="absolute top-40 right-10 w-[500px] h-[500px] bg-gradient-to-br from-purple-400/30 to-pink-600/30 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000 opacity-40"></div>
-          <div className="absolute -bottom-20 left-1/2 w-[600px] h-[600px] bg-gradient-to-br from-indigo-400/30 to-violet-600/30 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-4000 opacity-35"></div>
-          
-          {/* Additional Smaller Orbs for Depth */}
-          <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-teal-600/20 rounded-full mix-blend-screen filter blur-2xl animate-blob animation-delay-3000 opacity-30"></div>
-          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-gradient-to-br from-rose-400/20 to-orange-600/20 rounded-full mix-blend-screen filter blur-2xl animate-blob animation-delay-5000 opacity-25"></div>
-          
-          {/* Animated Grid Pattern with Perspective */}
-          <div className="absolute inset-0 opacity-15" style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-            transform: 'perspective(1000px) rotateX(60deg)',
-            transformOrigin: 'center center',
+          {/* Subtle geometric patterns */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: 'linear-gradient(rgba(34, 197, 94, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 197, 94, 0.1) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
           }}></div>
           
-          {/* Floating Geometric Shapes */}
-          <div className="absolute top-1/3 left-1/4 w-32 h-32 border-2 border-white/10 rotate-45 animate-float-slow opacity-20"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border-2 border-white/10 rounded-full animate-float-slow animation-delay-3000 opacity-15"></div>
-          <div className="absolute top-1/2 left-1/3 w-16 h-16 border-2 border-white/10 rotate-12 animate-float-slow animation-delay-6000 opacity-20"></div>
-          
-          {/* Particle-like Small Dots */}
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-white/20 rounded-full animate-twinkle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${3 + Math.random() * 4}s`,
-              }}
-            ></div>
-          ))}
-          
-          {/* Radial Gradient Overlay */}
-          <div className="absolute inset-0 bg-radial-gradient from-transparent via-purple-900/20 to-slate-900/40"></div>
+          {/* Glowing orbs */}
+          <div className="absolute top-20 left-10 w-96 h-96 bg-emerald-500/20 rounded-full mix-blend-screen filter blur-3xl animate-blob opacity-30"></div>
+          <div className="absolute bottom-20 right-10 w-[500px] h-[500px] bg-cyan-500/20 rounded-full mix-blend-screen filter blur-3xl animate-blob animation-delay-2000 opacity-25"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 text-center">
-          <div className="mb-6 sm:mb-8">
-            {/* Logo Image */}
-            <div className="inline-flex items-center justify-center w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 mb-6 sm:mb-8">
-              <img 
-                src="/favicon.png" 
-                alt="The Lal Street Logo" 
-                className="w-full h-full object-contain drop-shadow-lg"
-              />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Side - Content */}
+            <div className="text-left space-y-6 sm:space-y-8">
+              {/* Logo and Brand */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12">
+                  <img 
+                    src="/favicon.png" 
+                    alt="The Lal Street Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white flex items-center gap-2">
+                  The Lal Street
+                  <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-400" />
+                </h1>
+              </div>
+              
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                Your Comprehensive Mutual Fund Portfolio Calculator
+              </h2>
+              
+              <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed">
+                Analyze your investments with real-time NAV data, industry-standard calculations, and powerful planning tools
+              </p>
+              
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button 
+                  size="lg" 
+                  className="group relative bg-emerald-500 hover:bg-emerald-400 text-white text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-7 rounded-xl shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/70 transition-all duration-300 hover:scale-105 border-0 font-semibold overflow-hidden w-full sm:w-auto"
+                  onClick={() => scrollToSection('features')}
+                >
+                  <span className="relative flex items-center justify-center">
+                    Explore Features →
+                  </span>
+                </Button>
+                <Button 
+                  size="lg" 
+                  className="group relative bg-transparent border-2 border-white/40 text-white hover:bg-white/10 text-base sm:text-lg px-6 sm:px-8 py-6 sm:py-7 rounded-xl transition-all duration-300 hover:scale-105 font-semibold w-full sm:w-auto"
+                  onClick={() => scrollToSection('how-it-works')}
+                >
+                  Learn More
+                </Button>
+              </div>
+              
+              {/* Security Note */}
+              <div className="flex items-center gap-2 text-sm text-slate-400 pt-4">
+                <Shield className="w-4 h-4" />
+                <span>Secure & Private. Calculations happen locally on your device.</span>
+              </div>
             </div>
-          </div>
-          
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-purple-100 mb-4 sm:mb-6 animate-fade-in drop-shadow-2xl px-2">
-            The Lal Street
-          </h1>
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-cyan-50 mb-3 sm:mb-4 max-w-3xl mx-auto font-semibold animate-fade-in animation-delay-200 px-4">
-            Your Comprehensive Mutual Fund Portfolio Calculator
-          </p>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-purple-100 mb-8 sm:mb-10 md:mb-12 max-w-2xl mx-auto animate-fade-in animation-delay-400 px-4">
-            Analyze your investments with real-time NAV data, industry-standard calculations, and powerful planning tools
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center animate-fade-in animation-delay-600 px-4">
-            <Button 
-              size="lg" 
-              className="group relative bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-white text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 rounded-xl shadow-2xl shadow-emerald-500/50 hover:shadow-emerald-500/70 transition-all duration-300 hover:scale-105 border-0 font-semibold overflow-hidden animate-gradient w-full sm:w-auto"
-              onClick={() => scrollToSection('features')}
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-cyan-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              <span className="relative flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Explore Features
-              </span>
-            </Button>
-            <Button 
-              size="lg" 
-              className="group relative bg-white/10 backdrop-blur-xl border-2 border-white/40 text-white hover:bg-white/20 text-base sm:text-lg px-6 sm:px-8 md:px-10 py-5 sm:py-6 md:py-7 rounded-xl shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 font-semibold overflow-hidden w-full sm:w-auto"
-              onClick={() => scrollToSection('how-it-works')}
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              <span className="relative flex items-center justify-center">
-                <Target className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Learn More
-              </span>
-            </Button>
+
+            {/* Right Side - Glowing Dashboard */}
+            <div className="relative lg:block hidden">
+              <div className="relative" style={{
+                transform: 'perspective(1200px) rotateY(-12deg) rotateX(8deg)',
+                transformStyle: 'preserve-3d',
+              }}>
+                {/* Enhanced Glowing Border Effect */}
+                <div className="absolute inset-0 bg-emerald-500/60 rounded-2xl blur-3xl opacity-70 animate-pulse"></div>
+                <div className="absolute inset-[1px] bg-emerald-400/40 rounded-2xl blur-xl opacity-50"></div>
+                
+                {/* Dashboard Container */}
+                <div className="relative bg-slate-950/98 backdrop-blur-xl rounded-2xl border-2 border-emerald-500/60 shadow-2xl p-5 overflow-hidden" style={{
+                  boxShadow: '0 0 60px rgba(34, 197, 94, 0.6), 0 0 100px rgba(34, 197, 94, 0.3), inset 0 0 30px rgba(34, 197, 94, 0.15)',
+                }}>
+                  {/* Top Bar with Window Controls */}
+                  <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-700/60">
+                    <div className="flex items-center gap-2">
+                      {/* Window Controls */}
+                      <div className="flex gap-1.5 mr-3">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                      </div>
+                      <span className="text-white font-semibold text-xs">The Lal Street</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_4px_rgba(34,197,94,0.8)]"></div>
+                        <span className="text-xs text-emerald-400 font-medium">Real-Time NAV: Active</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.8)]"></div>
+                        <span className="text-xs text-emerald-400 font-medium">Funds: 6/6</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Chart Area */}
+                  <div className="relative h-56 mb-5 bg-slate-900/80 rounded-lg p-3 border border-slate-700/60 overflow-hidden">
+                    {/* Mini Inset Bar Chart */}
+                    <div className="absolute top-2 left-2 z-10 bg-slate-800/90 rounded border border-slate-600/60 p-1.5 shadow-lg">
+                      <svg width="60" height="24" viewBox="0 0 60 24" className="overflow-visible">
+                        {/* Mini bars */}
+                        {[0, 1, 2, 3, 4, 5].map((i) => (
+                          <rect
+                            key={i}
+                            x={i * 9 + 2}
+                            y={20 - (i * 2.5 + 3)}
+                            width="6"
+                            height={i * 2.5 + 3}
+                            fill="#3b82f6"
+                            opacity="0.8"
+                            className="transition-all"
+                          />
+                        ))}
+                        {/* Mini trend line */}
+                        <path
+                          d="M 2 18 L 8 16 L 14 14 L 20 12 L 26 10 L 32 8"
+                          fill="none"
+                          stroke="#60a5fa"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                    
+                    {/* Main Professional Chart */}
+                    <svg className="w-full h-full" viewBox="0 0 500 220" preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        {/* Gradient for chart fill - darker blue to lighter green */}
+                        <linearGradient id="chartGradientPro" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="rgba(34, 197, 94, 0.4)" stopOpacity="1" />
+                          <stop offset="50%" stopColor="rgba(34, 197, 94, 0.25)" stopOpacity="1" />
+                          <stop offset="100%" stopColor="rgba(59, 130, 246, 0.15)" stopOpacity="1" />
+                        </linearGradient>
+                        
+                        {/* Glow filter for the line */}
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                        
+                        {/* Glow for arrow */}
+                        <filter id="arrowGlow">
+                          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      
+                      {/* Y-axis grid lines with labels */}
+                      {[0, 1, 2, 3, 4, 5].map((i) => {
+                        const yPos = 30 + (i * 32);
+                        return (
+                          <g key={i}>
+                            <line
+                              x1="50"
+                              y1={yPos}
+                              x2="480"
+                              y2={yPos}
+                              stroke="rgba(255, 255, 255, 0.08)"
+                              strokeWidth="1"
+                            />
+                            {/* Y-axis labels */}
+                            <text
+                              x="45"
+                              y={yPos + 4}
+                              fill="rgba(255, 255, 255, 0.4)"
+                              fontSize="9"
+                              textAnchor="end"
+                              fontFamily="system-ui, -apple-system, sans-serif"
+                            >
+                              {(5 - i) * 500}
+                            </text>
+                          </g>
+                        );
+                      })}
+                      
+                      {/* X-axis grid lines (vertical) */}
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => {
+                        const xPos = 50 + (i * 47.5);
+                        return (
+                          <line
+                            key={i}
+                            x1={xPos}
+                            y1="30"
+                            x2={xPos}
+                            y2="190"
+                            stroke="rgba(255, 255, 255, 0.05)"
+                            strokeWidth="1"
+                          />
+                        );
+                      })}
+                      
+                      {/* Chart data points - creating a realistic upward trend with variation */}
+                      {/* Data: Jan: 800, Feb: 950, Mar: 1100, Apr: 1050 (down), May: 1250, Jun: 1400, Jul: 1350 (down), Aug: 1600, Sep: 1800, Oct: 2200 */}
+                      <g>
+                        {/* Gradient fill area */}
+                        <path
+                          d="M 50 150 
+                             L 97.5 135 
+                             L 145 120 
+                             L 192.5 125 
+                             L 240 90 
+                             L 287.5 75 
+                             L 335 80 
+                             L 382.5 60 
+                             L 430 45 
+                             L 430 190 
+                             L 50 190 Z"
+                          fill="url(#chartGradientPro)"
+                          opacity="0.9"
+                        />
+                        
+                        {/* Main glowing line with realistic variation */}
+                        <path
+                          d="M 50 150 
+                             Q 73.75 142.5, 97.5 135 
+                             Q 121.25 127.5, 145 120 
+                             Q 168.75 122.5, 192.5 125 
+                             Q 216.25 107.5, 240 90 
+                             Q 263.75 82.5, 287.5 75 
+                             Q 311.25 77.5, 335 80 
+                             Q 358.75 70, 382.5 60 
+                             Q 406.25 52.5, 430 45"
+                          fill="none"
+                          stroke="#22c55e"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          filter="url(#glow)"
+                          style={{
+                            filter: 'drop-shadow(0 0 6px rgba(34, 197, 94, 0.8))',
+                          }}
+                        />
+                        
+                        {/* Data point markers */}
+                        {[
+                          { x: 50, y: 150 },
+                          { x: 97.5, y: 135 },
+                          { x: 145, y: 120 },
+                          { x: 192.5, y: 125 },
+                          { x: 240, y: 90 },
+                          { x: 287.5, y: 75 },
+                          { x: 335, y: 80 },
+                          { x: 382.5, y: 60 },
+                          { x: 430, y: 45 },
+                        ].map((point, i) => (
+                          <g key={i}>
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r="4"
+                              fill="#22c55e"
+                              stroke="#0f172a"
+                              strokeWidth="2"
+                              style={{
+                                filter: 'drop-shadow(0 0 4px rgba(34, 197, 94, 1))',
+                              }}
+                            />
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r="2"
+                              fill="#86efac"
+                            />
+                          </g>
+                        ))}
+                      </g>
+                      
+                      {/* Large Glowing Growth Arrow */}
+                      <g transform="translate(430, 45)">
+                        <defs>
+                          <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#22c55e" />
+                            <stop offset="100%" stopColor="#10b981" />
+                          </linearGradient>
+                        </defs>
+                        {/* Arrow shadow/glow */}
+                        <path
+                          d="M 0 0 L 45 -35 L 35 -25 L 35 -15 L 0 0 Z"
+                          fill="rgba(34, 197, 94, 0.3)"
+                          filter="url(#arrowGlow)"
+                          style={{
+                            filter: 'blur(8px)',
+                          }}
+                        />
+                        {/* Main arrow */}
+                        <path
+                          d="M 0 0 L 45 -35 L 35 -25 L 35 -15 L 0 0 Z"
+                          fill="url(#arrowGradient)"
+                          style={{
+                            filter: 'drop-shadow(0 0 12px rgba(34, 197, 94, 1))',
+                          }}
+                        />
+                        {/* Arrow highlight */}
+                        <path
+                          d="M 5 -5 L 30 -25 L 28 -23 L 28 -18 L 5 -5 Z"
+                          fill="rgba(134, 239, 172, 0.6)"
+                        />
+                      </g>
+                      
+                      {/* X-axis labels */}
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, i) => {
+                        const xPos = 50 + (i * 47.5) + (i === 0 ? 0 : 0);
+                        return (
+                          <text
+                            key={month}
+                            x={xPos}
+                            y={205}
+                            fill="rgba(255, 255, 255, 0.5)"
+                            fontSize="10"
+                            textAnchor="middle"
+                            fontFamily="system-ui, -apple-system, sans-serif"
+                            fontWeight="500"
+                          >
+                            {month}
+                          </text>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  
+                  {/* Metrics Cards */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="bg-slate-800/80 rounded-lg p-3 border border-slate-700/60 hover:border-emerald-500/40 transition-colors">
+                      <div className="text-xs text-slate-400 mb-1.5 font-medium">XIRR</div>
+                      <div className="text-xl font-bold text-emerald-400" style={{
+                        textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
+                      }}>14.2%</div>
+                    </div>
+                    <div className="bg-slate-800/80 rounded-lg p-3 border border-slate-700/60 hover:border-emerald-500/40 transition-colors">
+                      <div className="text-xs text-slate-400 mb-1.5 font-medium">Total Value:</div>
+                      <div className="text-xl font-bold text-emerald-400" style={{
+                        textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
+                      }}>₹15,40,000</div>
+                    </div>
+                    <div className="bg-slate-800/80 rounded-lg p-3 border border-slate-700/60 hover:border-emerald-500/40 transition-colors">
+                      <div className="text-xs text-slate-400 mb-1.5 font-medium">Today&apos;s Gain:</div>
+                      <div className="text-xl font-bold text-emerald-400" style={{
+                        textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
+                      }}>+₹12,500</div>
+                      <div className="text-xs text-emerald-400 mt-0.5">(0.8%)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
