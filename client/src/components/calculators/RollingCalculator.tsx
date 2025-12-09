@@ -13,6 +13,7 @@ import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
 import { calculateXIRR } from '../../utils/financialCalculations';
 import { getNextAvailableNAV, getLatestNAVBeforeDate, addMonths, getToday } from '../../utils/dateUtils';
+import { logger } from '../../utils/logger';
 
 interface RollingCalculatorProps {
   funds: SelectedFund[];
@@ -146,7 +147,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
       const extendedStartDate = addMonths(startDate, -windowMonths);
       const fundSchemeCodes = funds.map(f => f.id);
       
-      console.log(`[Rolling Lumpsum] Mode: ${rollingPeriod}, Window: ${windowMonths} months`);
+      logger.log(`[Rolling Lumpsum] Mode: ${rollingPeriod}, Window: ${windowMonths} months`);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, extendedStartDate, endDate);
       
@@ -276,7 +277,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
       const bucketXirrValues = bucketRollingReturns.map(r => r.xirr);
       const bucketStats = calculateStatistics(bucketXirrValues);
       
-      console.log('[Rolling Lumpsum] Complete:', {
+      logger.log('[Rolling Lumpsum] Complete:', {
         mode: rollingPeriod,
         fundCount: fundRollingDataArray.length,
         windowCount: bucketRollingReturns.length,
@@ -311,7 +312,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
       const extendedStartDate = addMonths(startDate, -windowMonths);
       const fundSchemeCodes = funds.map(f => f.id);
       
-      console.log(`[Rolling SIP] Window: ${windowMonths} months, Period: Monthly rolling`);
+      logger.log(`[Rolling SIP] Window: ${windowMonths} months, Period: Monthly rolling`);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, extendedStartDate, endDate);
       
@@ -336,7 +337,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
         currentStart = addMonthsToDate(currentStart, 1);
       }
       
-      console.log(`[Rolling SIP] Generated ${rollingStartDates.length} rolling windows`);
+      logger.log(`[Rolling SIP] Generated ${rollingStartDates.length} rolling windows`);
       
       // Calculate for each fund
       funds.forEach(fund => {
@@ -566,7 +567,7 @@ export function RollingCalculator({ funds }: RollingCalculatorProps) {
       const bucketXirrValues = bucketRollingReturns.map(r => r.xirr);
       const bucketStats = calculateStatistics(bucketXirrValues);
       
-      console.log('[Rolling SIP] Complete:', {
+      logger.log('[Rolling SIP] Complete:', {
         windowCount: bucketRollingReturns.length,
         mean: bucketStats.mean.toFixed(2) + '%'
       });

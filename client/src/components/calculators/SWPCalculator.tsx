@@ -33,6 +33,7 @@ import {
 import { TrendingUp, TrendingDown, Info, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
 import { calculateXIRR } from '../../utils/financialCalculations';
 import { getLatestNAVBeforeDate, getToday } from '../../utils/dateUtils';
 import {
@@ -737,9 +738,9 @@ export function SWPCalculator({
             {/* NORMAL Mode */}
             <TabsContent value="NORMAL">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+          <div>
                   <Label htmlFor="total-investment-normal">Total Investment (₹)</Label>
-                  <Input
+              <Input
                     id="total-investment-normal"
                     type="number"
                     min={1}
@@ -750,8 +751,8 @@ export function SWPCalculator({
                     }}
                     placeholder="500000"
                     className="mt-1"
-                  />
-                </div>
+              />
+            </div>
                 <div>
                   <Label htmlFor="withdrawal-amount-normal">Monthly Withdrawal (₹)</Label>
                   <Input
@@ -773,9 +774,9 @@ export function SWPCalculator({
             {/* CORPUS Mode */}
             <TabsContent value="CORPUS">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+          <div>
                   <Label htmlFor="total-investment-corpus">Total Investment (₹)</Label>
-                  <Input
+              <Input
                     id="total-investment-corpus"
                     type="number"
                     min={1}
@@ -786,8 +787,8 @@ export function SWPCalculator({
                     }}
                     placeholder="500000"
                     className="mt-1"
-                  />
-                </div>
+              />
+            </div>
                 <div>
                   <Label htmlFor="auto-withdrawal">
                     Safe Withdrawal ({frequencyDescriptor}) (₹)
@@ -815,11 +816,11 @@ export function SWPCalculator({
             {/* TARGET Mode */}
             <TabsContent value="TARGET">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+          <div>
                   <Label htmlFor="desired-withdrawal-target">Desired Monthly Withdrawal (₹)</Label>
-                  <Input
+              <Input
                     id="desired-withdrawal-target"
-                    type="number"
+                type="number"
                     min={1}
                     value={desiredWithdrawal || ''}
                     onChange={(event) => {
@@ -899,15 +900,15 @@ export function SWPCalculator({
                     id="withdrawal-amount-normal"
                     type="number"
                     min={1}
-                    value={withdrawalAmount}
+              value={withdrawalAmount}
                     onChange={(event) => {
                       const value = Number(event.target.value) || 0;
                       setWithdrawalAmount(value >= 0 ? value : 0);
                     }}
                     placeholder="15000"
                     className="mt-1"
-                  />
-                </div>
+              />
+            </div>
               </div>
             )}
 
@@ -1213,14 +1214,14 @@ export function SWPCalculator({
                       </div>
                     ))}
                   </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
             )}
           </div>
         )}
 
-        <Button
+              <Button
           onClick={calculateSWP}
           disabled={
             isLoading ||
@@ -1233,7 +1234,7 @@ export function SWPCalculator({
           className="w-full mt-6"
         >
           {isLoading ? 'Simulating...' : 'Run SWP Simulation'}
-        </Button>
+              </Button>
       </Card>
 
       {/* Loading State */}
@@ -1360,7 +1361,7 @@ export function SWPCalculator({
                   <span className="text-xs text-slate-500 font-normal">
                     Switch to &quot;I Have a Target Withdrawal&quot; to estimate the corpus needed for a desired income.
                   </span>
-                )}
+          )}
         </div>
                 <p className="text-xs text-slate-500 mt-1">
                   Uses adjusted return of{' '}
@@ -1383,8 +1384,8 @@ export function SWPCalculator({
       )}
 
       {result && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 border-slate-200">
               <div className="text-xs uppercase text-slate-500 font-semibold mb-2">
                 Total Invested
@@ -1467,6 +1468,7 @@ export function SWPCalculator({
                 {formatNumber(result.maxDrawdown * 100, 2)}%
               </div>
             </Card>
+            <SimpleRollingReturnCard funds={funds} />
           </div>
 
           <Card className="p-4 sm:p-6 border-slate-200">
@@ -1497,9 +1499,9 @@ export function SWPCalculator({
                   </SelectContent>
                 </Select>
                 <Badge variant="outline" className="bg-slate-50 text-slate-700">
-                  {result.chartData.length} data points
-                </Badge>
-              </div>
+                {result.chartData.length} data points
+              </Badge>
+            </div>
             </div>
             <div className="w-full h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -1545,14 +1547,14 @@ export function SWPCalculator({
                 />
                 {selectedFundView === 'bucket' ? (
                   <>
-                    <Line
-                      type="monotone"
+                <Line
+                  type="monotone"
                       dataKey="portfolioValue"
                       name="Portfolio value"
-                      stroke="#1f2937"
-                      strokeWidth={3}
-                      dot={false}
-                    />
+                  stroke="#1f2937"
+                  strokeWidth={3}
+                  dot={false}
+                />
                     <Line
                       type="monotone"
                       dataKey="withdrawn"
@@ -1569,18 +1571,18 @@ export function SWPCalculator({
                       .map((fund) => {
                         const fundIndex = funds.findIndex((f) => f.id === fund.fundId);
                         const colors = ['#0ea5e9', '#22c55e', '#f97316', '#a855f7', '#ef4444'];
-                        return (
-                          <Line
-                            key={fund.fundId}
-                            type="monotone"
-                            dataKey={fund.fundName}
+                  return (
+                    <Line
+                      key={fund.fundId}
+                      type="monotone"
+                      dataKey={fund.fundName}
                             name={`${fund.fundName} value`}
                             stroke={colors[fundIndex % colors.length]}
                             strokeWidth={3}
-                            dot={false}
-                          />
-                        );
-                      })}
+                      dot={false}
+                    />
+                  );
+                })}
                     <Line
                       type="monotone"
                       dataKey="withdrawn"
@@ -1723,7 +1725,7 @@ export function SWPCalculator({
               )}
     </Card>
           )}
-        </>
+        </div>
       )}
     </div>
   );

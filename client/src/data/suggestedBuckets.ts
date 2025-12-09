@@ -15,6 +15,21 @@ let cacheTimestamp: number = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Get the cache timestamp (for checking cache age)
+ */
+export function getCacheTimestamp(): number {
+  return cacheTimestamp;
+}
+
+/**
+ * Check if cache is still valid
+ */
+export function isCacheValid(): boolean {
+  const now = Date.now();
+  return cachedBuckets.length > 0 && (now - cacheTimestamp) < CACHE_TTL;
+}
+
+/**
  * Load suggested buckets from server
  * Uses cache to reduce API calls
  * @param activeOnly - If true, returns only active buckets

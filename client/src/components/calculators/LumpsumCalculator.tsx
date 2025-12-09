@@ -9,8 +9,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
 import { getNextAvailableNAV, getLatestNAVBeforeDate, getToday } from '../../utils/dateUtils';
 import { calculateCAGR as calcCAGR } from '../../utils/financialCalculations';
+import { logger } from '../../utils/logger';
 
 interface LumpsumCalculatorProps {
   funds: SelectedFund[];
@@ -93,8 +95,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
       
       // Fetch real NAV data
       const fundSchemeCodes = funds.map(f => f.id);
-      console.log('[Lumpsum] Fetching NAV data for funds:', fundSchemeCodes);
-      console.log('[Lumpsum] Date range:', startDate, 'to', endDate);
+      logger.log('[Lumpsum] Fetching NAV data for funds:', fundSchemeCodes);
+      logger.log('[Lumpsum] Date range:', startDate, 'to', endDate);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, startDate, endDate);
       
@@ -102,7 +104,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         throw new Error("No NAV data available for the selected funds in the given period.");
       }
       
-      console.log('[Lumpsum] NAV Responses received:', navResponses.length, 'funds');
+      logger.log('[Lumpsum] NAV Responses received:', navResponses.length, 'funds');
       
       // Calculate lumpsum for each fund
       const fundPerformances: FundPerformance[] = [];
@@ -131,7 +133,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         const startNAV = startNavEntry.nav;
         const endNAV = endNavEntry.nav;
         
-        console.log(`[Lumpsum] ${fund.name}: Start NAV (${startNavEntry.date}) = ${startNAV}, End NAV (${endNavEntry.date}) = ${endNAV}`);
+        logger.log(`[Lumpsum] ${fund.name}: Start NAV (${startNavEntry.date}) = ${startNAV}, End NAV (${endNavEntry.date}) = ${endNAV}`);
         
         // Step 4: Units Purchased
         // U_i = I_i / NAV_{i,start}
@@ -178,7 +180,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         years
       };
       
-      console.log('[Lumpsum] Calculation complete:', {
+      logger.log('[Lumpsum] Calculation complete:', {
         investment: investmentAmount,
         currentValue: totalBucketValue,
         profit: absoluteProfit,
@@ -216,13 +218,14 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
   const fundColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
   return (
-    <Card className="bg-white border-slate-200 shadow-sm">
-      <div className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
-          <div>
-            <h2 className="text-lg sm:text-xl text-slate-900 mb-1">Lumpsum Calculator</h2>
-            <p className="text-xs sm:text-sm text-slate-600">Calculate returns on one-time investment</p>
-          </div>
+    <div className="space-y-6">
+      <Card className="bg-white border-slate-200 shadow-sm">
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+            <div>
+              <h2 className="text-lg sm:text-xl text-slate-900 mb-1">Lumpsum Calculator</h2>
+              <p className="text-xs sm:text-sm text-slate-600">Calculate returns on one-time investment</p>
+            </div>
           <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50 text-xs sm:text-sm w-fit">
             {funds.length} {funds.length === 1 ? 'Fund' : 'Funds'} Selected
           </Badge>
@@ -323,7 +326,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         {result && (
           <div className="space-y-6 mt-6">
             {/* Performance Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
               <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Investment</div>
                 <div className="text-lg sm:text-2xl font-bold text-slate-900">
@@ -360,6 +363,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                   Over {result.bucketPerformance.years.toFixed(1)} years
                 </div>
               </Card>
+
+              <SimpleRollingReturnCard funds={funds} />
             </div>
 
             {/* Fund Performance Table */}
@@ -537,5 +542,6 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         )}
       </div>
     </Card>
+    </div>
   );
 }

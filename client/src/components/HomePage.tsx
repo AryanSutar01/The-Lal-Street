@@ -6,6 +6,7 @@ import { Skeleton } from './ui/skeleton';
 import { Card } from './ui/card';
 import { loadSuggestedBuckets } from '../data/suggestedBuckets';
 import { warmUpServer } from '../utils/serverHealthCheck';
+import { logger } from '../utils/logger';
 import type { SuggestedBucket } from '../types/suggestedBucket';
 import type { SelectedFund } from '../App';
 
@@ -20,51 +21,100 @@ export function HomePage({ onNavigate, onImportBucket }: HomePageProps) {
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   useEffect(() => {
-    // Load suggested buckets with server warm-up
-    const loadBucketsWithWarmUp = async () => {
+    let isMounted = true;
+    
+    // Load suggested buckets - use cache if available
+    const loadBuckets = async () => {
       try {
-        setIsLoadingBuckets(true);
-        // First, warm up the server to prevent cold start delays
-        // This is especially important for Render.com deployments
-        console.log('Warming up server...');
-        await warmUpServer();
+        // Check if cache is valid before showing loading state
+        const { isCacheValid } = await import('../data/suggestedBuckets');
+        const hasValidCache = isCacheValid();
         
-        // Give the server a moment to fully start up after warm-up
-        // Then load suggested buckets
-        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        if (!hasValidCache) {
+          setIsLoadingBuckets(true);
+        }
         
-        console.log('Loading suggested buckets...');
+        // Load buckets (will use cache if valid)
         const buckets = await loadSuggestedBuckets(true); // activeOnly = true
-        setSuggestedBuckets(buckets);
+        
+        if (isMounted) {
+          setSuggestedBuckets(buckets);
+          setIsLoadingBuckets(false);
+        }
+        
+        // If cache was valid, refresh in background if needed (older than 1 hour)
+        if (hasValidCache) {
+          const { getCacheTimestamp } = await import('../data/suggestedBuckets');
+          const cacheAge = Date.now() - getCacheTimestamp();
+          const oneHour = 60 * 60 * 1000;
+          
+          if (cacheAge > oneHour) {
+            // Cache is stale, refresh in background
+            logger.log('Cache is stale, refreshing buckets in background...');
+            try {
+              await warmUpServer();
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const freshBuckets = await loadSuggestedBuckets(true);
+              if (isMounted) {
+                setSuggestedBuckets(freshBuckets);
+              }
+            } catch (error) {
+              console.error('Error refreshing buckets:', error);
+              // Keep using cached buckets on error
+            }
+          }
+        }
       } catch (error) {
         console.error('Error loading suggested buckets:', error);
-        setSuggestedBuckets([]);
-      } finally {
-        setIsLoadingBuckets(false);
+        if (isMounted) {
+          setSuggestedBuckets([]);
+          setIsLoadingBuckets(false);
+        }
       }
     };
 
-    loadBucketsWithWarmUp();
+    loadBuckets();
 
-    // Check and recalculate buckets if needed (every 5 days, if server is not under load)
+    // Check and recalculate buckets if needed (daily, in background)
+    // This runs separately and only updates if recalculation actually happened
     const handleAutoRecalculation = async () => {
       try {
         setIsRecalculating(true);
         const { checkAndRecalculateBuckets } = await import('../utils/bucketRecalculationService');
-        await checkAndRecalculateBuckets();
+        const result = await checkAndRecalculateBuckets();
         
-        // Reload buckets after recalculation
-        const reloaded = await loadSuggestedBuckets(true);
-        setSuggestedBuckets(reloaded);
+        // Only reload if buckets were actually recalculated
+        if (result.recalculated > 0 && isMounted) {
+          logger.log(`Recalculated ${result.recalculated} buckets, refreshing...`);
+          const reloaded = await loadSuggestedBuckets(true);
+          setSuggestedBuckets(reloaded);
+        }
       } catch (error) {
         console.error('Error in auto-recalculation:', error);
       } finally {
-        setIsRecalculating(false);
+        if (isMounted) {
+          setIsRecalculating(false);
+        }
       }
     };
 
-    // Run recalculation check in background (non-blocking)
-    handleAutoRecalculation();
+    // Run recalculation check in background (non-blocking, only once per day)
+    // Use localStorage to track last recalculation time
+    const lastRecalcKey = 'lastBucketRecalc';
+    const lastRecalc = localStorage.getItem(lastRecalcKey);
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    if (!lastRecalc || (now - parseInt(lastRecalc)) > oneDay) {
+      // Only recalculate if it's been more than a day
+      localStorage.setItem(lastRecalcKey, now.toString());
+      handleAutoRecalculation();
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const scrollToSection = (id: string) => {

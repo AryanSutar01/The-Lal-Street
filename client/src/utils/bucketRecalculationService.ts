@@ -2,6 +2,7 @@ import type { SuggestedBucket } from '../types/suggestedBucket';
 import { loadSuggestedBuckets, saveSuggestedBuckets, updateSuggestedBucket } from '../data/suggestedBuckets';
 import { calculateBucketPerformance } from './bucketPerformanceCalculator';
 import { checkServerHealth, shouldRecalculate } from './serverHealthCheck';
+import { logger } from './logger';
 
 const RECALCULATION_INTERVAL_DAYS = 5;
 
@@ -10,7 +11,7 @@ const RECALCULATION_INTERVAL_DAYS = 5;
  */
 async function recalculateBucketPerformance(bucket: SuggestedBucket): Promise<SuggestedBucket | null> {
   try {
-    console.log(`[Recalculation] Starting recalculation for bucket: ${bucket.name}`);
+    logger.log(`[Recalculation] Starting recalculation for bucket: ${bucket.name}`);
     
     // Calculate new performance metrics
     const performance = await calculateBucketPerformance(bucket.funds);
@@ -32,7 +33,7 @@ async function recalculateBucketPerformance(bucket: SuggestedBucket): Promise<Su
     // Save updated bucket
     await updateSuggestedBucket(bucket.id, updatedBucket);
     
-    console.log(`[Recalculation] Successfully recalculated bucket: ${bucket.name}`);
+    logger.log(`[Recalculation] Successfully recalculated bucket: ${bucket.name}`);
     return updatedBucket;
   } catch (error: any) {
     console.error(`[Recalculation] Error recalculating bucket ${bucket.name}:`, error.message);
@@ -62,16 +63,16 @@ export async function checkAndRecalculateBuckets(): Promise<{
     const serverStatus = await checkServerHealth();
     
     if (!serverStatus.isHealthy) {
-      console.log('[Recalculation] Server is not healthy, skipping recalculation');
+      logger.log('[Recalculation] Server is not healthy, skipping recalculation');
       return stats;
     }
 
     if (serverStatus.isLoading) {
-      console.log('[Recalculation] Server is under load, skipping recalculation');
+      logger.log('[Recalculation] Server is under load, skipping recalculation');
       return stats;
     }
 
-    console.log('[Recalculation] Server is healthy, checking buckets...');
+    logger.log('[Recalculation] Server is healthy, checking buckets...');
 
     // Load all buckets
     const buckets = await loadSuggestedBuckets(false);
@@ -86,11 +87,11 @@ export async function checkAndRecalculateBuckets(): Promise<{
     });
 
     if (bucketsToRecalculate.length === 0) {
-      console.log('[Recalculation] No buckets need recalculation');
+      logger.log('[Recalculation] No buckets need recalculation');
       return stats;
     }
 
-    console.log(`[Recalculation] Found ${bucketsToRecalculate.length} buckets that need recalculation`);
+    logger.log(`[Recalculation] Found ${bucketsToRecalculate.length} buckets that need recalculation`);
 
     // Recalculate buckets one by one (to avoid overwhelming the server)
     for (const bucket of bucketsToRecalculate) {
@@ -106,7 +107,7 @@ export async function checkAndRecalculateBuckets(): Promise<{
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(`[Recalculation] Completed: ${stats.recalculated} recalculated, ${stats.errors} errors`);
+    logger.log(`[Recalculation] Completed: ${stats.recalculated} recalculated, ${stats.errors} errors`);
     
     return stats;
   } catch (error: any) {

@@ -9,8 +9,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend as Rechar
 import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
 import { getDatesBetween, getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths, getToday } from '../../utils/dateUtils';
+import { logger } from '../../utils/logger';
 
 interface SIPCalculatorProps {
   funds: SelectedFund[];
@@ -97,11 +99,11 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
 
     try {
       const fundSchemeCodes = funds.map(f => f.id);
-      console.log('Fetching NAV data for funds:', fundSchemeCodes);
-      console.log('Date range:', startDate, 'to', endDate);
+      logger.log('Fetching NAV data for funds:', fundSchemeCodes);
+      logger.log('Date range:', startDate, 'to', endDate);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, startDate, endDate);
-      console.log('NAV Responses received:', navResponses);
+      logger.log('NAV Responses received:', navResponses);
 
       if (navResponses.length === 0) {
         throw new Error("No NAV data available for the selected funds in the given period.");
@@ -125,7 +127,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         // This ensures we capture the last investment even if end date is a holiday
         const daysFromEnd = Math.ceil((plannedDateObj.getTime() - end.getTime()) / (1000 * 60 * 60 * 24));
         if (plannedDateObj.getTime() > end.getTime() + (32 * 24 * 60 * 60 * 1000)) {
-          console.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
+          logger.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
           break;
         }
 
@@ -145,9 +147,9 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // Look for any NAV in the end month
             const firstDayOfMonth = `${endYear}-${String(endMonth + 1).padStart(2, '0')}-01`;
             navEntry = getNextAvailableNAV(firstFundNav.navData, firstDayOfMonth);
-            console.log(`[SIP Loop ${loopCount}] Planned ${currentPlannedDate} in end month, trying ${firstDayOfMonth}, found: ${navEntry?.date}`);
+            logger.log(`[SIP Loop ${loopCount}] Planned ${currentPlannedDate} in end month, trying ${firstDayOfMonth}, found: ${navEntry?.date}`);
           } else {
-            console.log(`[SIP Loop ${loopCount}] No NAV found for planned: ${currentPlannedDate}, trying next month`);
+            logger.log(`[SIP Loop ${loopCount}] No NAV found for planned: ${currentPlannedDate}, trying next month`);
           }
         }
         
@@ -176,7 +178,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
           
           // Log near end date for debugging
           if (plannedDateObj.getTime() > end.getTime() - (60 * 24 * 60 * 60 * 1000)) {
-            console.log(`[SIP Date Check] Planned: ${currentPlannedDate} (${plannedYear}-${plannedMonth+1}), Actual: ${navEntry.date}, End: ${endDate} (${endYear}-${endMonth+1}), isPlannedBeforeOrSameMonth: ${isPlannedBeforeOrSameMonth}, Days after end: ${daysDiff}, Include: ${shouldInclude}`);
+            logger.log(`[SIP Date Check] Planned: ${currentPlannedDate} (${plannedYear}-${plannedMonth+1}), Actual: ${navEntry.date}, End: ${endDate} (${endYear}-${endMonth+1}), isPlannedBeforeOrSameMonth: ${isPlannedBeforeOrSameMonth}, Days after end: ${daysDiff}, Include: ${shouldInclude}`);
           }
           
           if (shouldInclude) {
@@ -194,7 +196,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             
             // If we just invested in the same month/year as end date, we're done
             if (actualYear === endYear && actualMonth === endMonth) {
-              console.log(`[SIP Date Check] Completed - Just invested in end month (${actualYear}-${actualMonth+1})`);
+              logger.log(`[SIP Date Check] Completed - Just invested in end month (${actualYear}-${actualMonth+1})`);
               break;
             }
             
@@ -202,7 +204,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // This resets to the original day (e.g., if started on 1st, always try 1st of next month)
             currentPlannedDate = addMonths(currentPlannedDate, 1);
           } else {
-            console.log(`[SIP Date Check] STOPPED - Investment not included`);
+            logger.log(`[SIP Date Check] STOPPED - Investment not included`);
             // If we shouldn't include, stop the loop
             break;
           }
@@ -212,20 +214,20 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         }
       }
 
-      console.log('=== SIP DATES SUMMARY ===');
-      console.log('Actual SIP Dates generated:', actualSIPDates.length, 'months');
-      console.log('Start date:', startDate);
-      console.log('End date:', endDate);
-      console.log('First 5 dates:', actualSIPDates.slice(0, 5));
-      console.log('Last 5 dates:', actualSIPDates.slice(-5));
-      console.log('========================');
+      logger.log('=== SIP DATES SUMMARY ===');
+      logger.log('Actual SIP Dates generated:', actualSIPDates.length, 'months');
+      logger.log('Start date:', startDate);
+      logger.log('End date:', endDate);
+      logger.log('First 5 dates:', actualSIPDates.slice(0, 5));
+      logger.log('Last 5 dates:', actualSIPDates.slice(-5));
+      logger.log('========================');
       
       const totalMonths = actualSIPDates.length;
       const totalInvested = monthlyInvestment * totalMonths;
 
       const fundResults = funds.map(fund => {
         const navData = navResponses.find(nav => nav.schemeCode === fund.id);
-        console.log(`Processing fund ${fund.id}:`, navData);
+        logger.log(`Processing fund ${fund.id}:`, navData);
         
         if (!navData) {
           throw new Error(`No NAV data found for fund: ${fund.name} (${fund.id})`);
@@ -319,7 +321,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
       ];
       const xirr = calculateXIRR(cashFlows);
       
-      console.log('Portfolio Metrics:', {
+      logger.log('Portfolio Metrics:', {
         invested: portfolioInvested,
         value: portfolioValue,
         profit: portfolioProfit,
@@ -347,7 +349,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // If no NAV found for planned date, try using actual date
             if (!navEntry) {
               navEntry = getNextAvailableNAV(navData.navData, actualDate);
-              console.log(`[Unit Tracking ${index}] No NAV for planned ${plannedDate}, using actual ${actualDate}, found: ${navEntry?.date}`);
+              logger.log(`[Unit Tracking ${index}] No NAV for planned ${plannedDate}, using actual ${actualDate}, found: ${navEntry?.date}`);
             }
             
             if (navEntry) {
@@ -365,7 +367,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                 nav: navEntry.nav  // Store the NAV used for this investment
               });
             } else {
-              console.log(`[Unit Tracking ${index}] ERROR - No NAV found for planned: ${plannedDate}, actual: ${actualDate}`);
+              logger.log(`[Unit Tracking ${index}] ERROR - No NAV found for planned: ${plannedDate}, actual: ${actualDate}`);
             }
           }
         });
@@ -398,7 +400,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             
             // Debug for last point
             if (index === actualSIPDates.length - 1) {
-              console.log(`[Chart Last Point] Date: ${actualDate}, Units: ${unitData[index].units}, NAV: ${currentNav}, Value: ${fundValue}`);
+              logger.log(`[Chart Last Point] Date: ${actualDate}, Units: ${unitData[index].units}, NAV: ${currentNav}, Value: ${fundValue}`);
             }
             
             dataPoint[fund.name] = fundValue;
@@ -411,11 +413,11 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         return dataPoint;
       });
       
-      console.log('=== CHART DATA ===');
-      console.log('Total chart points:', chartData.length);
-      console.log('First chart point:', chartData[0]);
-      console.log('Last chart point:', chartData[chartData.length - 1]);
-      console.log('==================');
+      logger.log('=== CHART DATA ===');
+      logger.log('Total chart points:', chartData.length);
+      logger.log('First chart point:', chartData[0]);
+      logger.log('Last chart point:', chartData[chartData.length - 1]);
+      logger.log('==================');
 
       setResult({
         totalInvested: portfolioInvested,
@@ -538,9 +540,9 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
       )}
 
         {result && (
-        <>
+        <div className="space-y-6">
             {/* Performance Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
             <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Invested</div>
               <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
@@ -596,6 +598,8 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
               </div>
               <div className="text-xs text-purple-600 mt-2">Internal rate</div>
             </Card>
+
+            <SimpleRollingReturnCard funds={funds} />
           </div>
 
             {/* Chart */}
@@ -639,6 +643,17 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                   iconType="line"
                 />
                   
+                  {/* Total Invested Line (Dashed) */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="invested" 
+                    stroke="#6b7280" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Total Invested"
+                    dot={false}
+                  />
+                  
                   {/* Bucket Performance Line (Bold Black) */}
                   <Line 
                     type="monotone" 
@@ -648,22 +663,6 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                     name="Bucket Performance"
                   dot={false}
                   />
-                  
-                  {/* Individual Fund Lines with Different Colors */}
-                  {result.fundResults.map((fund, index) => {
-                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                    return (
-                      <Line 
-                        key={fund.fundId}
-                        type="monotone" 
-                        dataKey={fund.fundName} 
-                        stroke={colors[index % colors.length]}
-                        strokeWidth={2}
-                        name={fund.fundName}
-                        dot={false}
-                      />
-                    );
-                  })}
                 </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -725,7 +724,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             </Table>
             </div>
           </Card>
-        </>
+        </div>
         )}
       </div>
   );

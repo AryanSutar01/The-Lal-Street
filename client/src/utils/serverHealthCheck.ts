@@ -1,4 +1,5 @@
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { logger } from './logger';
 
 export interface ServerHealthStatus {
   isHealthy: boolean;
@@ -85,7 +86,7 @@ export async function checkServerHealth(): Promise<ServerHealthStatus> {
       ? 'Server health check timed out'
       : error.message || 'Failed to check server health';
     
-    console.warn('Server health check failed:', errorMessage);
+    logger.warn('Server health check failed:', errorMessage);
     return {
       isHealthy: false,
       isLoading: true,
@@ -131,15 +132,15 @@ export async function warmUpServer(): Promise<void> {
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      console.log('Server warmed up successfully');
+      logger.log('Server warmed up successfully');
     } else {
-      console.warn('Server warm-up received non-OK response:', response.status);
+      logger.warn('Server warm-up received non-OK response:', response.status);
     }
   } catch (error: any) {
     // Silently handle errors - warm-up is best effort
     // Server might still be starting up, which is fine
     if (error.name !== 'AbortError') {
-      console.warn('Server warm-up failed (server may still be starting):', error.message);
+      logger.warn('Server warm-up failed (server may still be starting):', error.message);
     }
   }
 }

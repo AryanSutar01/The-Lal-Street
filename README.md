@@ -48,264 +48,79 @@ A comprehensive web application for analyzing mutual fund portfolio performance 
 ### Backend (`server`)
 - **Node.js** - Runtime environment
 - **Express.js** - Web framework
-- **Axios** - HTTP client for external APIs
-- **Node Cache** - In-memory caching for NAV data
-
-### External APIs
-- **MFAPI** - Mutual fund NAV data provider
-- **RapidAPI (MF India)** - Fund search and metadata
-
-## 📦 Installation
-
-### Prerequisites
-
-- Node.js >= 16.0.0
-- npm or yarn
-
-### Clone Repository
-
-```bash
-git clone https://github.com/yourusername/The-Lal-Street.git
-cd The-Lal-Street
-```
-
-### Install Dependencies
-
-```bash
-# Install server dependencies
-cd server
-npm install
-
-# Install client dependencies
-cd ../client
-npm install
-```
-
-### Environment Variables
-
-Create a `.env` file in the `server` directory:
-
-```env
-PORT=5000
-NODE_ENV=development
-
-# RapidAPI Configuration
-RAPIDAPI_KEY=your_rapidapi_key_here
-RAPIDAPI_HOST=latest-mutual-fund-nav.p.rapidapi.com
-
-# CORS Configuration
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-Create a `.env` file in the `client` directory:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-## 🏃 Running the Application
-
-### Development Mode
-
-```bash
-# Terminal 1 - Start backend server
-cd server
-npm run dev
-
-# Terminal 2 - Start frontend
-cd client
-npm run dev
-```
-
-The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
-
-### Production Build
-
-```bash
-# Build frontend
-cd client
-npm run build
-
-# Start production server
-cd ../server
-npm start
-```
+- **RapidAPI** - NAV data provider
 
 ## 📁 Project Structure
 
 ```
 The-Lal-Street/
-├── client/                      # Frontend React application
-│   ├── src/
-│   │   ├── components/          # React components
-│   │   │   ├── calculators/     # Calculator components
-│   │   │   ├── ui/              # Reusable UI components
-│   │   │   ├── FundSearch.tsx   # Fund search component
-│   │   │   └── FundBucket.tsx   # Portfolio management
-│   │   ├── services/            # API service layer
-│   │   ├── utils/               # Utility functions
-│   │   ├── config/              # Configuration
-│   │   └── styles/              # Global styles
-│   ├── package.json
-│   └── vite.config.js
-│
-├── server/                      # Backend Node.js application
-│   ├── controllers/             # Route controllers
-│   ├── services/                # Business logic
-│   ├── routes/                  # API routes
-│   ├── middleware/              # Express middleware
-│   ├── logic/                   # Financial calculations
-│   ├── utils/                   # Utility functions
-│   ├── server.js                # Entry point
-│   └── package.json
-│
-├── vercel.json                  # Vercel deployment config
-└── README.md                    # This file
+├── client/          # React frontend application
+├── server/          # Node.js backend API
+└── documentation/   # All project documentation (see below)
 ```
 
-## 🌐 Deployment
+## 📚 Documentation
 
-### Deploy to Vercel
+All detailed documentation is available in the [`documentation/`](./documentation/) directory:
 
-1. **Install Vercel CLI**
+### Setup & Deployment
+- **[Deployment Guide](./documentation/DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
+- **[Quick Start Guide](./documentation/QUICK_START_SEPARATE_DEPLOY.md)** - Quick deployment setup
+- **[Environment Variables](./documentation/ENVIRONMENT_VARIABLES.md)** - Configuration guide
+- **[Vercel Deployment Guide](./documentation/VERCEL_DEPLOYMENT_GUIDE.md)** - Frontend deployment
+- **[Render Setup](./documentation/RENDER_SETUP_INSTRUCTIONS.md)** - Backend deployment
+
+### API & Features
+- **[API Documentation](./documentation/API_DOCUMENTATION.md)** - API endpoints and usage
+- **[Calculator Documentation](./documentation/CALCULATOR_DOCUMENTATION.md)** - Calculator features and formulas
+- **[SWP Strategies](./documentation/swp_strategies_simulator.md)** - SWP calculator documentation
+
+### Admin & Security
+- **[Admin Panel Guide](./documentation/ADMIN_PANEL_GUIDE.md)** - Admin features and setup
+- **[Admin Authentication](./documentation/ADMIN_AUTHENTICATION_SETUP.md)** - Authentication setup
+- **[Admin Access Guide](./documentation/ADMIN_ACCESS_GUIDE.md)** - Access management
+- **[Security Protocols](./documentation/SECURITY_PROTOCOLS.md)** - Security best practices
+
+### Development & Maintenance
+- **[Testing Guide](./documentation/TESTING_GUIDE.md)** - Testing procedures
+- **[Troubleshooting](./documentation/TROUBLESHOOTING_MAINTENANCE.md)** - Common issues and solutions
+- **[Suggested Buckets Implementation](./documentation/SUGGESTED_BUCKETS_IMPLEMENTATION.md)** - Feature documentation
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
+
+1. **Install client dependencies:**
    ```bash
-   npm install -g vercel
+   cd client
+   npm install
    ```
 
-2. **Login to Vercel**
+2. **Install server dependencies:**
    ```bash
-   vercel login
+   cd server
+   npm install
    ```
 
-3. **Deploy**
+3. **Start development servers:**
    ```bash
-   vercel
+   # Terminal 1 - Backend
+   cd server
+   npm start
+
+   # Terminal 2 - Frontend
+   cd client
+   npm run dev
    ```
-
-4. **Configure Environment Variables** in Vercel Dashboard
-   - Add all variables from `.env` files
-   - Update `VITE_API_URL` to your Vercel API URL
-
-5. **Production Deployment**
-   ```bash
-   vercel --prod
-   ```
-
-### Alternative: GitHub Integration
-
-1. Push code to GitHub
-2. Import repository in Vercel
-3. Configure build settings:
-   - **Framework Preset**: Vite
-   - **Root Directory**: client
-   - **Build Command**: `npm run build`
-   - **Output Directory**: dist
-4. Add environment variables
-5. Deploy
-
-## 📖 Usage Guide
-
-### 1. Search and Add Funds
-
-- Use the search bar to find mutual funds by name or scheme code
-- Add 2-5 funds to your bucket
-- Adjust portfolio weightage (must total 100%)
-
-### 2. Select Calculator
-
-Choose from:
-- **SIP**: Regular monthly investments
-- **SIP + Lumpsum**: Combined strategy
-- **Lumpsum**: One-time investment
-- **Rolling Returns**: Historical performance analysis
-- **SWP**: Systematic withdrawals
-
-### 3. Configure Parameters
-
-- Set investment amounts
-- Select date ranges
-- Choose distribution mode (for SIP+Lumpsum)
-
-### 4. Analyze Results
-
-View comprehensive metrics:
-- Total invested vs current value
-- Profit/loss with percentage returns
-- CAGR and XIRR
-- Individual fund performance
-- Interactive performance charts
-
-## 🔧 API Endpoints
-
-### Fund Search
-```
-GET /api/funds/search?query=hdfc
-```
-
-### NAV Data
-```
-POST /api/calculator/nav
-Body: {
-  schemeCodes: ["119551", "120503"],
-  startDate: "2020-01-01",
-  endDate: "2024-10-30"
-}
-```
-
-### Rolling Returns
-```
-POST /api/calculator/rolling
-Body: {
-  schemeCodes: ["119551"],
-  windowDays: 365
-}
-```
-
-## 🧪 Testing
-
-```bash
-# Run frontend tests
-cd client
-npm test
-
-# Run backend tests
-cd server
-npm test
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+[Add your license here]
 
-## 👤 Author
+## 🤝 Contributing
 
-**Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/yourprofile)
-
-## 🙏 Acknowledgments
-
-- [MFAPI](https://www.mfapi.in/) for providing mutual fund NAV data
-- [RapidAPI](https://rapidapi.com/) for fund search API
-- [Recharts](https://recharts.org/) for beautiful chart components
-- [Tailwind CSS](https://tailwindcss.com/) for styling utilities
-
-## 📞 Support
-
-For support, email your-email@example.com or create an issue in the repository.
-
----
-
-⭐ **Star this repository if you find it helpful!**
+[Add contributing guidelines here]

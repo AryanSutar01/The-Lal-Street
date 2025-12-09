@@ -9,8 +9,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend as Rechar
 import { TrendingUp, TrendingDown, Plus, Minus, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
 import { getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths, getToday } from '../../utils/dateUtils';
+import { logger } from '../../utils/logger';
 
 interface SIPLumpsumCalculatorProps {
   funds: SelectedFund[];
@@ -129,11 +131,11 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
       }
 
       const fundSchemeCodes = funds.map(f => f.id);
-      console.log('Fetching NAV data for funds:', fundSchemeCodes);
-      console.log('Date range:', startDate, 'to', endDate);
+      logger.log('Fetching NAV data for funds:', fundSchemeCodes);
+      logger.log('Date range:', startDate, 'to', endDate);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, startDate, endDate);
-      console.log('NAV Responses received:', navResponses);
+      logger.log('NAV Responses received:', navResponses);
 
       if (navResponses.length === 0) {
         throw new Error("No NAV data available for the selected funds in the given period.");
@@ -151,7 +153,7 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
         
         const daysFromEnd = Math.ceil((plannedDateObj.getTime() - end.getTime()) / (1000 * 60 * 60 * 24));
         if (plannedDateObj.getTime() > end.getTime() + (32 * 24 * 60 * 60 * 1000)) {
-          console.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
+          logger.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
           break;
         }
 
@@ -210,7 +212,7 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
         }
       }
 
-      console.log('SIP Dates generated:', actualSIPDates.length, 'months');
+      logger.log('SIP Dates generated:', actualSIPDates.length, 'months');
       
       const totalSIPInvested = monthlyInvestment * actualSIPDates.length;
       const totalLumpsumInvested = hasLumpsum ? lumpsumAmount : 0;
@@ -796,9 +798,9 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
       )}
 
       {result && (
-        <>
+        <div className="space-y-6">
           {/* Performance Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
             <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Invested</div>
               <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
@@ -855,11 +857,7 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
               <div className="text-xs text-purple-600 mt-2">Internal rate</div>
             </Card>
 
-            <Card className="p-3 sm:p-5 bg-gradient-to-br from-pink-50 to-rose-100 border-2 border-pink-200 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="text-xs font-semibold text-pink-700 uppercase tracking-wide mb-1">SIP Count</div>
-              <div className="text-lg sm:text-2xl font-bold text-slate-900">{result.installments}</div>
-              <div className="text-xs text-pink-600 mt-2">Installments</div>
-            </Card>
+            <SimpleRollingReturnCard funds={funds} />
           </div>
 
           {/* Chart */}
@@ -903,6 +901,17 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                   iconType="line"
                 />
                 
+                {/* Total Invested Line (Dashed) */}
+                <Line 
+                  type="monotone" 
+                  dataKey="invested" 
+                  stroke="#6b7280" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  name="Total Invested"
+                  dot={false}
+                />
+                
                 {/* Bucket Performance Line (Bold) */}
                 <Line 
                   type="monotone" 
@@ -912,22 +921,6 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
                   name="Bucket Performance"
                   dot={false}
                 />
-                
-                {/* Individual Fund Lines */}
-                {result.fundResults.map((fund, index) => {
-                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                  return (
-                    <Line 
-                      key={fund.fundId}
-                      type="monotone" 
-                      dataKey={fund.fundName} 
-                      stroke={colors[index % colors.length]}
-                      strokeWidth={2}
-                      name={fund.fundName}
-                      dot={false}
-                    />
-                  );
-                })}
               </LineChart>
               </ResponsiveContainer>
             </div>
@@ -993,7 +986,7 @@ export function SIPLumpsumCalculator({ funds }: SIPLumpsumCalculatorProps) {
             </Table>
             </div>
           </Card>
-        </>
+        </div>
       )}
     </div>
   );

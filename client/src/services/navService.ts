@@ -1,5 +1,6 @@
 import { getToday } from '../utils/dateUtils';
 import { API_ENDPOINTS } from '../config/api';
+import { logger } from '../utils/logger';
 
 interface NAVData {
   date: string;
@@ -37,7 +38,7 @@ export async function fetchNAVData(
   }
 
   try {
-    console.log('[navService] Fetching NAV data for:', schemeCodes);
+    logger.log('[navService] Fetching NAV data for:', schemeCodes);
     const response = await fetch(API_ENDPOINTS.FUNDS_NAV, {
       method: 'POST',
       headers: {
@@ -53,7 +54,7 @@ export async function fetchNAVData(
     }
 
     const rawData = await response.json();
-    console.log('[navService] Raw data received:', rawData);
+    logger.log('[navService] Raw data received:', rawData);
 
     const data: FundNAVResponse[] = rawData.map((item: any) => ({
       schemeCode: item.schemeCode || item.scheme_code,
@@ -65,7 +66,7 @@ export async function fetchNAVData(
       }
     }));
 
-    console.log('[navService] Parsed data before filtering:', data.map(f => ({ 
+    logger.log('[navService] Parsed data before filtering:', data.map(f => ({ 
       code: f.schemeCode, 
       navCount: f.navData.length,
       firstDate: f.navData[0]?.date,
@@ -85,7 +86,7 @@ export async function fetchNAVData(
       })
     }));
 
-    console.log('[navService] Filtered data:', filteredData.map(f => ({ 
+    logger.log('[navService] Filtered data:', filteredData.map(f => ({ 
       code: f.schemeCode, 
       navCount: f.navData.length 
     })));
@@ -100,7 +101,7 @@ export async function fetchNAVData(
   } catch (error) {
     console.error('Error fetching NAV data:', error);
     if (cached) {
-      console.log('Returning expired cache data');
+      logger.log('Returning expired cache data');
       return cached.data;
     }
     throw error;
