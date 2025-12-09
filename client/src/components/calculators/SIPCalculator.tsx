@@ -6,11 +6,13 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend as RechartsLegend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
 import { calculateXIRR, calculateCAGR } from '../../utils/financialCalculations';
-import { getDatesBetween, getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths } from '../../utils/dateUtils';
+import { getDatesBetween, getNextAvailableNAV, getLatestNAVBeforeDate, getYearsBetween, addMonths, getToday } from '../../utils/dateUtils';
+import { logger } from '../../utils/logger';
 
 interface SIPCalculatorProps {
   funds: SelectedFund[];
@@ -52,10 +54,6 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-const getToday = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
-
 export function SIPCalculator({ funds }: SIPCalculatorProps) {
   const [monthlyInvestment, setMonthlyInvestment] = useState<number>(10000);
   const [startDate, setStartDate] = useState<string>('2020-01-01');
@@ -90,17 +88,22 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
   }, [funds]);
 
   const calculateSIP = async () => {
+    // Prevent multiple simultaneous calculations
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const fundSchemeCodes = funds.map(f => f.id);
-      console.log('Fetching NAV data for funds:', fundSchemeCodes);
-      console.log('Date range:', startDate, 'to', endDate);
+      logger.log('Fetching NAV data for funds:', fundSchemeCodes);
+      logger.log('Date range:', startDate, 'to', endDate);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, startDate, endDate);
-      console.log('NAV Responses received:', navResponses);
+      logger.log('NAV Responses received:', navResponses);
 
       if (navResponses.length === 0) {
         throw new Error("No NAV data available for the selected funds in the given period.");
@@ -124,7 +127,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         // This ensures we capture the last investment even if end date is a holiday
         const daysFromEnd = Math.ceil((plannedDateObj.getTime() - end.getTime()) / (1000 * 60 * 60 * 24));
         if (plannedDateObj.getTime() > end.getTime() + (32 * 24 * 60 * 60 * 1000)) {
-          console.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
+          logger.log(`[SIP Loop] STOPPED - Planned date too far: ${currentPlannedDate} (${daysFromEnd} days from end)`);
           break;
         }
 
@@ -144,9 +147,9 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // Look for any NAV in the end month
             const firstDayOfMonth = `${endYear}-${String(endMonth + 1).padStart(2, '0')}-01`;
             navEntry = getNextAvailableNAV(firstFundNav.navData, firstDayOfMonth);
-            console.log(`[SIP Loop ${loopCount}] Planned ${currentPlannedDate} in end month, trying ${firstDayOfMonth}, found: ${navEntry?.date}`);
+            logger.log(`[SIP Loop ${loopCount}] Planned ${currentPlannedDate} in end month, trying ${firstDayOfMonth}, found: ${navEntry?.date}`);
           } else {
-            console.log(`[SIP Loop ${loopCount}] No NAV found for planned: ${currentPlannedDate}, trying next month`);
+            logger.log(`[SIP Loop ${loopCount}] No NAV found for planned: ${currentPlannedDate}, trying next month`);
           }
         }
         
@@ -175,7 +178,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
           
           // Log near end date for debugging
           if (plannedDateObj.getTime() > end.getTime() - (60 * 24 * 60 * 60 * 1000)) {
-            console.log(`[SIP Date Check] Planned: ${currentPlannedDate} (${plannedYear}-${plannedMonth+1}), Actual: ${navEntry.date}, End: ${endDate} (${endYear}-${endMonth+1}), isPlannedBeforeOrSameMonth: ${isPlannedBeforeOrSameMonth}, Days after end: ${daysDiff}, Include: ${shouldInclude}`);
+            logger.log(`[SIP Date Check] Planned: ${currentPlannedDate} (${plannedYear}-${plannedMonth+1}), Actual: ${navEntry.date}, End: ${endDate} (${endYear}-${endMonth+1}), isPlannedBeforeOrSameMonth: ${isPlannedBeforeOrSameMonth}, Days after end: ${daysDiff}, Include: ${shouldInclude}`);
           }
           
           if (shouldInclude) {
@@ -193,7 +196,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             
             // If we just invested in the same month/year as end date, we're done
             if (actualYear === endYear && actualMonth === endMonth) {
-              console.log(`[SIP Date Check] Completed - Just invested in end month (${actualYear}-${actualMonth+1})`);
+              logger.log(`[SIP Date Check] Completed - Just invested in end month (${actualYear}-${actualMonth+1})`);
               break;
             }
             
@@ -201,7 +204,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // This resets to the original day (e.g., if started on 1st, always try 1st of next month)
             currentPlannedDate = addMonths(currentPlannedDate, 1);
           } else {
-            console.log(`[SIP Date Check] STOPPED - Investment not included`);
+            logger.log(`[SIP Date Check] STOPPED - Investment not included`);
             // If we shouldn't include, stop the loop
             break;
           }
@@ -211,20 +214,20 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         }
       }
 
-      console.log('=== SIP DATES SUMMARY ===');
-      console.log('Actual SIP Dates generated:', actualSIPDates.length, 'months');
-      console.log('Start date:', startDate);
-      console.log('End date:', endDate);
-      console.log('First 5 dates:', actualSIPDates.slice(0, 5));
-      console.log('Last 5 dates:', actualSIPDates.slice(-5));
-      console.log('========================');
+      logger.log('=== SIP DATES SUMMARY ===');
+      logger.log('Actual SIP Dates generated:', actualSIPDates.length, 'months');
+      logger.log('Start date:', startDate);
+      logger.log('End date:', endDate);
+      logger.log('First 5 dates:', actualSIPDates.slice(0, 5));
+      logger.log('Last 5 dates:', actualSIPDates.slice(-5));
+      logger.log('========================');
       
       const totalMonths = actualSIPDates.length;
       const totalInvested = monthlyInvestment * totalMonths;
 
       const fundResults = funds.map(fund => {
         const navData = navResponses.find(nav => nav.schemeCode === fund.id);
-        console.log(`Processing fund ${fund.id}:`, navData);
+        logger.log(`Processing fund ${fund.id}:`, navData);
         
         if (!navData) {
           throw new Error(`No NAV data found for fund: ${fund.name} (${fund.id})`);
@@ -318,7 +321,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
       ];
       const xirr = calculateXIRR(cashFlows);
       
-      console.log('Portfolio Metrics:', {
+      logger.log('Portfolio Metrics:', {
         invested: portfolioInvested,
         value: portfolioValue,
         profit: portfolioProfit,
@@ -346,7 +349,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             // If no NAV found for planned date, try using actual date
             if (!navEntry) {
               navEntry = getNextAvailableNAV(navData.navData, actualDate);
-              console.log(`[Unit Tracking ${index}] No NAV for planned ${plannedDate}, using actual ${actualDate}, found: ${navEntry?.date}`);
+              logger.log(`[Unit Tracking ${index}] No NAV for planned ${plannedDate}, using actual ${actualDate}, found: ${navEntry?.date}`);
             }
             
             if (navEntry) {
@@ -364,7 +367,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                 nav: navEntry.nav  // Store the NAV used for this investment
               });
             } else {
-              console.log(`[Unit Tracking ${index}] ERROR - No NAV found for planned: ${plannedDate}, actual: ${actualDate}`);
+              logger.log(`[Unit Tracking ${index}] ERROR - No NAV found for planned: ${plannedDate}, actual: ${actualDate}`);
             }
           }
         });
@@ -397,7 +400,7 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
             
             // Debug for last point
             if (index === actualSIPDates.length - 1) {
-              console.log(`[Chart Last Point] Date: ${actualDate}, Units: ${unitData[index].units}, NAV: ${currentNav}, Value: ${fundValue}`);
+              logger.log(`[Chart Last Point] Date: ${actualDate}, Units: ${unitData[index].units}, NAV: ${currentNav}, Value: ${fundValue}`);
             }
             
             dataPoint[fund.name] = fundValue;
@@ -410,11 +413,11 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         return dataPoint;
       });
       
-      console.log('=== CHART DATA ===');
-      console.log('Total chart points:', chartData.length);
-      console.log('First chart point:', chartData[0]);
-      console.log('Last chart point:', chartData[chartData.length - 1]);
-      console.log('==================');
+      logger.log('=== CHART DATA ===');
+      logger.log('Total chart points:', chartData.length);
+      logger.log('First chart point:', chartData[0]);
+      logger.log('Last chart point:', chartData[chartData.length - 1]);
+      logger.log('==================');
 
       setResult({
         totalInvested: portfolioInvested,
@@ -439,19 +442,23 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">SIP Calculator</h2>
+      <Card className="p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">SIP Calculator</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div>
             <Label htmlFor="monthly-investment">Monthly Investment (₹)</Label>
             <Input
               id="monthly-investment"
               type="number"
               value={monthlyInvestment}
-              onChange={(e) => setMonthlyInvestment(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                setMonthlyInvestment(value >= 0 ? value : 0);
+              }}
               placeholder="10000"
               min="100"
+              step="100"
             />
           </div>
           
@@ -461,8 +468,18 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
               id="start-date"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const newStartDate = e.target.value;
+                if (newStartDate <= getToday()) {
+                  setStartDate(newStartDate);
+                  // Ensure end date is not before start date
+                  if (endDate && newStartDate > endDate) {
+                    setEndDate(newStartDate);
+                  }
+                }
+              }}
               min={minAvailableDate || undefined}
+              max={getToday()}
             />
             {minAvailableDate && (
               <p className="text-xs text-gray-500 mt-1">
@@ -477,19 +494,28 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
               id="end-date"
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const newEndDate = e.target.value;
+                if (newEndDate <= getToday() && (!startDate || newEndDate >= startDate)) {
+                  setEndDate(newEndDate);
+                }
+              }}
+              min={startDate || undefined}
               max={getToday()}
             />
+            {startDate && endDate && startDate > endDate && (
+              <p className="text-xs text-red-600 mt-1">End date must be after start date</p>
+            )}
           </div>
         </div>
 
-            <Button 
-              onClick={calculateSIP}
+        <Button 
+          onClick={calculateSIP}
           disabled={!isValidAllocation || isLoading || funds.length === 0}
-          className="w-full"
-            >
+          className="w-full bg-black hover:bg-gray-800 text-white"
+        >
           {isLoading ? 'Calculating...' : 'Calculate SIP'}
-            </Button>
+        </Button>
 
         {!isValidAllocation && (
           <p className="text-red-600 text-sm mt-2">
@@ -498,6 +524,15 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
         )}
       </Card>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="p-8 sm:p-10 md:p-12 text-center border-slate-200 mt-6">
+          <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-600 mx-auto mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Calculating SIP Returns...</h3>
+          <p className="text-sm sm:text-base text-gray-600">This may take a few moments while we fetch NAV data and calculate returns</p>
+        </Card>
+      )}
+
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">
           <p className="text-red-800">{error}</p>
@@ -505,12 +540,12 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
       )}
 
         {result && (
-        <>
+        <div className="space-y-6">
             {/* Performance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+            <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Invested</div>
-              <div className="text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
+              <div className="text-lg sm:text-2xl font-bold text-slate-900">{formatCurrency(result.totalInvested)}</div>
               <div className="text-xs text-blue-600 mt-2 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                 {result.installments} installments
@@ -563,17 +598,20 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
               </div>
               <div className="text-xs text-purple-600 mt-2">Internal rate</div>
             </Card>
+
+            <SimpleRollingReturnCard funds={funds} />
           </div>
 
             {/* Chart */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Performance Over Time</h3>
-              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900">Performance Over Time</h3>
+              <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50 text-xs sm:text-sm w-fit">
                 {result.chartData.length} data points
               </Badge>
             </div>
-              <ResponsiveContainer width="100%" height={450}>
+              <div className="w-full h-[300px] sm:h-[450px]">
+                <ResponsiveContainer width="100%" height="100%">
               <LineChart data={result.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
@@ -605,6 +643,17 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                   iconType="line"
                 />
                   
+                  {/* Total Invested Line (Dashed) */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="invested" 
+                    stroke="#6b7280" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Total Invested"
+                    dot={false}
+                  />
+                  
                   {/* Bucket Performance Line (Bold Black) */}
                   <Line 
                     type="monotone" 
@@ -614,42 +663,28 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                     name="Bucket Performance"
                   dot={false}
                   />
-                  
-                  {/* Individual Fund Lines with Different Colors */}
-                  {result.fundResults.map((fund, index) => {
-                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                    return (
-                      <Line 
-                        key={fund.fundId}
-                        type="monotone" 
-                        dataKey={fund.fundName} 
-                        stroke={colors[index % colors.length]}
-                        strokeWidth={2}
-                        name={fund.fundName}
-                        dot={false}
-                      />
-                    );
-                  })}
                 </LineChart>
-            </ResponsiveContainer>
+                </ResponsiveContainer>
+              </div>
             </Card>
 
           {/* Fund Details Table */}
-          <Card className="p-6 border-2 border-slate-200 shadow-xl">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
-              <p className="text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
+          <Card className="p-4 sm:p-6 border-2 border-slate-200 shadow-xl">
+            <div className="mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Individual Fund Performance</h3>
+              <p className="text-xs sm:text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
             </div>
+            <div className="overflow-x-auto">
                   <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fund Name</TableHead>
-                  <TableHead>Total Invested</TableHead>
-                  <TableHead>Current Value</TableHead>
-                  <TableHead>Profit/Loss</TableHead>
-                  <TableHead>% Returns</TableHead>
-                  <TableHead>CAGR</TableHead>
-                  <TableHead>XIRR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Fund Name</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Total Invested</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Current Value</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Profit/Loss</TableHead>
+                  <TableHead className="text-xs sm:text-sm">% Returns</TableHead>
+                  <TableHead className="text-xs sm:text-sm">CAGR</TableHead>
+                  <TableHead className="text-xs sm:text-sm">XIRR</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -687,8 +722,9 @@ export function SIPCalculator({ funds }: SIPCalculatorProps) {
                 })}
               </TableBody>
             </Table>
+            </div>
           </Card>
-        </>
+        </div>
         )}
       </div>
   );

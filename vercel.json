@@ -1,29 +1,30 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd client && npm ci && npm run build",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install && cd server && npm install",
+  "rewrites": [
     {
-      "src": "server/server.js",
-      "use": "@vercel/node"
+      "source": "/api/funds/search",
+      "destination": "/api/funds/search.js"
     },
     {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "client/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server/server.js"
+      "source": "/api/funds/get-nav-bucket",
+      "destination": "/api/funds/get-nav-bucket.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "client/dist/$1"
+      "source": "/api/suggested-buckets/:path*",
+      "destination": "/api/suggested-buckets/index.js"
     }
   ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "framework": null,
+  "cleanUrls": true
 }

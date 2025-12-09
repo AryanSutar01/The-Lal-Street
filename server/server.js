@@ -17,9 +17,26 @@ let errorCount = 0;
 const startTime = Date.now();
 
 // --- Middlewares ---
-// This is the most important part for connecting client and server.
-// It allows our React app (running on a different port) to make requests to this server.
-app.use(cors());
+// CORS Configuration - allows frontend to connect from different domain
+// In production, set ALLOWED_ORIGINS env variable
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 // This middleware allows our server to understand JSON data sent in request bodies.
 // We'll need this for our calculator forms later.
@@ -74,6 +91,9 @@ app.use('/api/calculator', calculatorRoutes);
 // --- Routes ---
 const fundsRoutes = require('./routes/funds.routes.js');
 app.use('/api/funds', fundsRoutes);
+
+const suggestedBucketsRoutes = require('./routes/suggestedBuckets.routes.js');
+app.use('/api/suggested-buckets', suggestedBucketsRoutes);
 
 // Enhanced health check route with server statistics
 app.get('/api/health', (req, res) => {

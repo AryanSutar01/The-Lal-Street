@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Suggestion 1",
+    "description": "This is a testing bucket",
+    "category": "investment",
+    "funds": [
+      {
+        "id": "113069",
+        "name": "Motilal Oswal Nifty 50 ETF",
+        "launchDate": "2010-07-30",
+        "category": "Other Scheme - Other  ETFs",
+        "weightage": 50
+      },
+      {
+        "id": "122639",
+        "name": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+        "launchDate": "2013-05-28",
+        "category": "Equity Scheme - Flexi Cap Fund",
+        "weightage": 50
+      }
+    ],
+    "isActive": true,
+    "performance": {
+      "rollingReturns": {
+        "bucket": {
+          "mean": 15.108071193448072,
+          "median": 14.240761603103124,
+          "max": 35.155474038451516,
+          "min": -0.8025412146163813,
+          "stdDev": 6.176218179452886,
+          "positivePercentage": 99.79909593169262
+        },
+        "funds": [
+          {
+            "fundId": "113069",
+            "fundName": "Motilal Oswal Nifty 50 ETF",
+            "mean": 10.721817297494274,
+            "median": 12.428187640275778,
+            "max": 32.30885244785795,
+            "min": -6.474035241086796,
+            "stdDev": 7.662539366080383,
+            "positivePercentage": 87.64439979909594
+          },
+          {
+            "fundId": "122639",
+            "fundName": "Parag Parikh Flexi Cap Fund - Direct Plan - Growth",
+            "mean": 19.016341658094486,
+            "median": 19.139351929851365,
+            "max": 37.88713675350179,
+            "min": 2.0752597699086994,
+            "stdDev": 6.30793972664104,
+            "positivePercentage": 100
+          }
+        ]
+      },
+      "riskLevel": "moderate",
+      "analysisStartDate": "2013-05-28",
+      "analysisEndDate": "2025-12-07",
+      "totalPeriods": 1991
+    },
+    "riskLevel": "moderate",
+    "id": "bucket-1765111500958-5r7df7qeo",
+    "createdAt": "2025-12-07T12:45:00.958Z",
+    "updatedAt": "2025-12-07T12:45:00.968Z",
+    "lastCalculationDate": "2025-12-07T12:45:00.958Z"
+  }
+]

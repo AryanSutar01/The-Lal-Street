@@ -6,11 +6,13 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import type { SelectedFund } from '../../App';
 import { fetchNAVData } from '../../services/navService';
-import { getNextAvailableNAV, getLatestNAVBeforeDate } from '../../utils/dateUtils';
+import { SimpleRollingReturnCard } from '../SimpleRollingReturnCard';
+import { getNextAvailableNAV, getLatestNAVBeforeDate, getToday } from '../../utils/dateUtils';
 import { calculateCAGR as calcCAGR } from '../../utils/financialCalculations';
+import { logger } from '../../utils/logger';
 
 interface LumpsumCalculatorProps {
   funds: SelectedFund[];
@@ -37,12 +39,6 @@ interface BucketPerformance {
   cagr: number;
   years: number;
 }
-
-// Helper to get today's date
-const getToday = () => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-};
 
 export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
   const [investmentAmount, setInvestmentAmount] = useState<number>(100000);
@@ -76,6 +72,11 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
   }, [funds]);
 
   const calculateLumpsum = async () => {
+    // Prevent multiple simultaneous calculations
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -94,8 +95,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
       
       // Fetch real NAV data
       const fundSchemeCodes = funds.map(f => f.id);
-      console.log('[Lumpsum] Fetching NAV data for funds:', fundSchemeCodes);
-      console.log('[Lumpsum] Date range:', startDate, 'to', endDate);
+      logger.log('[Lumpsum] Fetching NAV data for funds:', fundSchemeCodes);
+      logger.log('[Lumpsum] Date range:', startDate, 'to', endDate);
       
       const navResponses = await fetchNAVData(fundSchemeCodes, startDate, endDate);
       
@@ -103,7 +104,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         throw new Error("No NAV data available for the selected funds in the given period.");
       }
       
-      console.log('[Lumpsum] NAV Responses received:', navResponses.length, 'funds');
+      logger.log('[Lumpsum] NAV Responses received:', navResponses.length, 'funds');
       
       // Calculate lumpsum for each fund
       const fundPerformances: FundPerformance[] = [];
@@ -132,7 +133,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         const startNAV = startNavEntry.nav;
         const endNAV = endNavEntry.nav;
         
-        console.log(`[Lumpsum] ${fund.name}: Start NAV (${startNavEntry.date}) = ${startNAV}, End NAV (${endNavEntry.date}) = ${endNAV}`);
+        logger.log(`[Lumpsum] ${fund.name}: Start NAV (${startNavEntry.date}) = ${startNAV}, End NAV (${endNavEntry.date}) = ${endNAV}`);
         
         // Step 4: Units Purchased
         // U_i = I_i / NAV_{i,start}
@@ -179,7 +180,7 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         years
       };
       
-      console.log('[Lumpsum] Calculation complete:', {
+      logger.log('[Lumpsum] Calculation complete:', {
         investment: investmentAmount,
         currentValue: totalBucketValue,
         profit: absoluteProfit,
@@ -217,20 +218,21 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
   const fundColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
   return (
-    <Card className="bg-white border-slate-200 shadow-sm">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-slate-900 mb-1">Lumpsum Calculator</h2>
-            <p className="text-sm text-slate-600">Calculate returns on one-time investment</p>
-          </div>
-          <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">
+    <div className="space-y-6">
+      <Card className="bg-white border-slate-200 shadow-sm">
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
+            <div>
+              <h2 className="text-lg sm:text-xl text-slate-900 mb-1">Lumpsum Calculator</h2>
+              <p className="text-xs sm:text-sm text-slate-600">Calculate returns on one-time investment</p>
+            </div>
+          <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50 text-xs sm:text-sm w-fit">
             {funds.length} {funds.length === 1 ? 'Fund' : 'Funds'} Selected
           </Badge>
         </div>
 
         {/* Input Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div className="space-y-2">
             <Label htmlFor="investment-amount">Total Investment (₹)</Label>
             <Input
@@ -239,7 +241,10 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               min="1000"
               step="1000"
               value={investmentAmount}
-              onChange={(e) => setInvestmentAmount(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value) || 0;
+                setInvestmentAmount(value >= 0 ? value : 0);
+              }}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
@@ -250,8 +255,18 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               id="start-date"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                const newStartDate = e.target.value;
+                if (newStartDate <= getToday()) {
+                  setStartDate(newStartDate);
+                  // Ensure end date is not before start date
+                  if (endDate && newStartDate > endDate) {
+                    setEndDate(newStartDate);
+                  }
+                }
+              }}
               min={minAvailableDate || undefined}
+              max={getToday()}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
             {minAvailableDate && (
@@ -268,21 +283,37 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
               type="date"
               value={endDate}
               max={getToday()}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                const newEndDate = e.target.value;
+                if (newEndDate <= getToday() && (!startDate || newEndDate >= startDate)) {
+                  setEndDate(newEndDate);
+                }
+              }}
+              min={startDate || undefined}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
-          </div>
-
-          <div className="flex items-end">
-            <Button 
-              onClick={calculateLumpsum}
-              disabled={isLoading || funds.length === 0}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isLoading ? 'Calculating...' : 'Calculate'}
-            </Button>
+            {startDate && endDate && startDate > endDate && (
+              <p className="text-xs text-red-600 mt-1">End date must be after start date</p>
+            )}
           </div>
         </div>
+
+        <Button 
+          onClick={calculateLumpsum}
+          disabled={isLoading || funds.length === 0}
+          className="w-full bg-black hover:bg-gray-800 text-white"
+        >
+          {isLoading ? 'Calculating...' : 'Calculate'}
+        </Button>
+
+        {/* Loading State */}
+        {isLoading && (
+          <Card className="p-8 sm:p-10 md:p-12 text-center border-slate-200 mt-6">
+            <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 animate-spin text-blue-600 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Calculating Lumpsum Returns...</h3>
+            <p className="text-sm sm:text-base text-gray-600">This may take a few moments while we fetch NAV data and calculate returns</p>
+          </Card>
+        )}
 
         {/* Error Message */}
         {error && (
@@ -293,29 +324,29 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
 
         {/* Results Section */}
         {result && (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-6">
             {/* Performance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card className="p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Total Investment</div>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-lg sm:text-2xl font-bold text-slate-900">
                   ₹{result.bucketPerformance.totalInvestment.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
                 <div className="text-xs text-blue-600 mt-2">One-time lumpsum</div>
               </Card>
 
-              <Card className="p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide mb-1">Current Bucket Value</div>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-lg sm:text-2xl font-bold text-slate-900">
                   ₹{result.bucketPerformance.currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
                 <div className="text-xs text-indigo-600 mt-2">Portfolio worth</div>
               </Card>
 
-              <Card className={`p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${result.bucketPerformance.absoluteProfit >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-200' : 'bg-gradient-to-br from-red-50 to-rose-100 border-red-200'}`}>
+              <Card className={`p-3 sm:p-5 border-2 shadow-lg hover:shadow-xl transition-shadow ${result.bucketPerformance.absoluteProfit >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-100 border-green-200' : 'bg-gradient-to-br from-red-50 to-rose-100 border-red-200'}`}>
                 <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>Absolute Profit</div>
-                <div className={`text-2xl font-bold flex items-center gap-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {result.bucketPerformance.absoluteProfit >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
+                <div className={`text-lg sm:text-2xl font-bold flex items-center gap-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {result.bucketPerformance.absoluteProfit >= 0 ? <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" /> : <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5" />}
                   {result.bucketPerformance.absoluteProfitPercent.toFixed(2)}%
                 </div>
                 <div className={`text-xs mt-2 ${result.bucketPerformance.absoluteProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -323,37 +354,39 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                 </div>
               </Card>
 
-              <Card className="p-5 bg-gradient-to-br from-purple-50 to-violet-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
+              <Card className="p-3 sm:p-5 bg-gradient-to-br from-purple-50 to-violet-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">CAGR</div>
-                <div className={`text-2xl font-bold ${result.bucketPerformance.cagr >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                <div className={`text-lg sm:text-2xl font-bold ${result.bucketPerformance.cagr >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   {result.bucketPerformance.cagr >= 0 ? '+' : ''}{result.bucketPerformance.cagr.toFixed(2)}%
                 </div>
                 <div className="text-xs text-purple-600 mt-2">
                   Over {result.bucketPerformance.years.toFixed(1)} years
                 </div>
               </Card>
+
+              <SimpleRollingReturnCard funds={funds} />
             </div>
 
             {/* Fund Performance Table */}
             <Card className="border-2 border-slate-200 shadow-xl">
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Fund-wise Performance</h3>
-                  <p className="text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
+              <div className="p-4 sm:p-6">
+                <div className="mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Fund-wise Performance</h3>
+                  <p className="text-xs sm:text-sm text-slate-600">Detailed breakdown of each fund's contribution to your portfolio</p>
                 </div>
-                <div className="rounded-lg border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50 hover:bg-slate-50">
-                        <TableHead className="text-slate-700">Fund Name</TableHead>
-                        <TableHead className="text-slate-700 text-right">Investment</TableHead>
-                        <TableHead className="text-slate-700 text-right">Units Purchased</TableHead>
-                        <TableHead className="text-slate-700 text-right">Start NAV</TableHead>
-                        <TableHead className="text-slate-700 text-right">End NAV</TableHead>
-                        <TableHead className="text-slate-700 text-right">Current Value</TableHead>
-                        <TableHead className="text-slate-700 text-right">Profit/Loss</TableHead>
-                        <TableHead className="text-slate-700 text-right">Returns %</TableHead>
-                        <TableHead className="text-slate-700 text-right">CAGR</TableHead>
+                        <TableHead className="text-slate-700 text-xs sm:text-sm">Fund Name</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Investment</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Units Purchased</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Start NAV</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">End NAV</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Current Value</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Profit/Loss</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">Returns %</TableHead>
+                        <TableHead className="text-slate-700 text-right text-xs sm:text-sm">CAGR</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -435,7 +468,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                 <p className="text-sm text-slate-600">Visual representation of your portfolio growth</p>
               </div>
               <div className="max-w-4xl mx-auto">
-                <ResponsiveContainer width="100%" height={400}>
+                <div className="w-full h-[300px] sm:h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={chartData}
                     layout="vertical"
@@ -467,7 +501,8 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
+                </div>
               </div>
               
               {/* Growth Indicator */}
@@ -507,5 +542,6 @@ export function LumpsumCalculator({ funds }: LumpsumCalculatorProps) {
         )}
       </div>
     </Card>
+    </div>
   );
 }
