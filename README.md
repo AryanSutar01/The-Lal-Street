@@ -61,7 +61,8 @@ The-Lal-Street/
 
 ## 📚 Documentation
 
-All detailed documentation is available in the [`documentation/`](./documentation/) directory:
+### 📖 Main Documentation
+- **[Complete Project Documentation](./documentation/PROJECT_DOCUMENTATION.md)** - Comprehensive guide covering architecture, setup, deployment, and all features
 
 ### Setup & Deployment
 - **[Deployment Guide](./documentation/DEPLOYMENT_GUIDE.md)** - Complete deployment instructions

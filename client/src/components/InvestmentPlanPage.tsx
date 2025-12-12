@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FundSearch } from './FundSearch';
 import { FundBucket } from './FundBucket';
 import { InvestmentTab } from './InvestmentTab';
@@ -19,6 +19,11 @@ export function InvestmentPlanPage({
   onRemoveFund,
   onWeightageChange,
 }: InvestmentPlanPageProps) {
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-blue-50 py-4 sm:py-6 md:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

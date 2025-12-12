@@ -817,7 +817,7 @@ export function SWPCalculator({
             <TabsContent value="TARGET">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-                  <Label htmlFor="desired-withdrawal-target">Desired Monthly Withdrawal (₹)</Label>
+                  <Label htmlFor="desired-withdrawal-target">Desired {frequencyDescriptor} Withdrawal (₹)</Label>
               <Input
                     id="desired-withdrawal-target"
                 type="number"
@@ -959,7 +959,7 @@ export function SWPCalculator({
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="desired-withdrawal-target">Desired Monthly Withdrawal (₹)</Label>
+                    <Label htmlFor="desired-withdrawal-target">Desired {frequencyDescriptor} Withdrawal (₹)</Label>
                     <Input
                       id="desired-withdrawal-target"
                       type="number"
@@ -972,6 +972,9 @@ export function SWPCalculator({
                       placeholder="20000"
                       className="mt-1"
                     />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Enter the amount you want to withdraw per {frequencyDescriptor.toLowerCase()}.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="auto-corpus">Required Corpus (₹)</Label>

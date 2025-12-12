@@ -390,7 +390,7 @@ export function BucketPerformanceReport({ bucket }: BucketPerformanceReportProps
                 <h4 className="font-semibold text-sm sm:text-base">Lumpsum Investment</h4>
               </div>
               <p className="text-xs sm:text-sm text-gray-600 mb-3">
-                Once 3 years ago: {formatCurrency(bucketLiveReturns.lumpsumInvestment)} invested
+                You would have made <strong className="text-emerald-700">{bucketLiveReturns.bucketCagr3Y !== null ? `${formatNumber(bucketLiveReturns.bucketCagr3Y)}%` : 'N/A'}</strong> annualised returns on {formatCurrency(bucketLiveReturns.lumpsumInvestment)} invested 3 years ago.
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
